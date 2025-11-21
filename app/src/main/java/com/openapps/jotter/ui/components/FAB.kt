@@ -1,4 +1,4 @@
-package com.openapps.jotter.components
+package com.openapps.jotter.ui.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add

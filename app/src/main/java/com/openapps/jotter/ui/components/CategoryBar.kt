@@ -36,35 +36,45 @@ fun CategoryBar(
 ) {
     val listState = rememberLazyListState()
     val density = LocalDensity.current
-
-    // Merge "All" + categories for the display list
     val displayList = listOf("All") + categories
 
-    // Your Scroll Logic (Kept this, it's good!)
     LaunchedEffect(selectedCategory) {
         val index = displayList.indexOf(selectedCategory)
         if (index >= 0) {
-            val layoutInfo = listState.layoutInfo
-            val visibleItem = layoutInfo.visibleItemsInfo.find { it.index == index }
-
+            // The custom slow animation for sliding
             val animSpec = tween<Float>(
-                durationMillis = 500, // Reduced from 700ms to 500ms for snappier feel
+                durationMillis = 500,
                 easing = FastOutSlowInEasing
             )
 
+            // LOGIC FIX:
+            // Check if the target item is currently visible (even partially).
+            // This works for Index 0 ("All") just as well as any other index!
+            val layoutInfo = listState.layoutInfo
+            val visibleItem = layoutInfo.visibleItemsInfo.find { it.index == index }
+
             if (visibleItem != null) {
+                // Item is on screen? Use the nice SLOW slide.
                 val itemStart = visibleItem.offset
                 val itemEnd = itemStart + visibleItem.size
                 val viewportEnd = layoutInfo.viewportEndOffset
-                // 16dp buffer (matches screen padding)
                 val padding = with(density) { 16.dp.toPx() }
 
                 if (itemEnd > viewportEnd) {
+                    // Slide left to show item
                     listState.animateScrollBy((itemEnd - viewportEnd) + padding, animSpec)
                 } else if (itemStart < 0) {
+                    // Slide right to show item (This handles the "Back to All" case smoothly)
+                    // Note: We use itemStart directly to align it to 0, minus padding
+                    listState.animateScrollBy(itemStart.toFloat() - padding, animSpec)
+                } else if (index == 0 && itemStart > 0) {
+                    // Special sub-case: If "All" is visible but floating in the middle,
+                    // slide it back to the absolute start (0px)
                     listState.animateScrollBy(itemStart.toFloat() - padding, animSpec)
                 }
             } else {
+                // Item is completely off-screen?
+                // Use standard scroll. The spring is better for long distances than a tween.
                 listState.animateScrollToItem(index)
             }
         }
@@ -73,7 +83,6 @@ fun CategoryBar(
     LazyRow(
         state = listState,
         modifier = modifier,
-        // Zero top padding to sit flush with Header
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -84,7 +93,6 @@ fun CategoryBar(
             FilterChip(
                 selected = isSelected,
                 onClick = {
-                    // RESTORED: Logic to toggle off and go back to "All"
                     if (isSelected && category != "All") {
                         onCategorySelect("All")
                     } else {
@@ -92,19 +100,16 @@ fun CategoryBar(
                     }
                 },
                 label = { Text(text = category) },
-                // RESTORED: 8.dp corners
                 shape = RoundedCornerShape(8.dp)
             )
         }
 
         item {
-            // RESTORED: Using FilterChip ensures exact same height/shape as categories
             FilterChip(
                 selected = false,
                 onClick = onAddCategoryClick,
                 label = { Text("Add") },
                 leadingIcon = {
-                    // RESTORED: Rounded Icon
                     Icon(
                         imageVector = Icons.Rounded.Add,
                         contentDescription = null,
