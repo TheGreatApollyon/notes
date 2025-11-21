@@ -1,6 +1,7 @@
 package com.openapps.jotter.ui.components
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,7 +37,12 @@ fun Header(
     onToggleView: (() -> Unit)? = null,
     onSettingsClick: (() -> Unit)? = null,
     // Optional: Only used for Detail Screens
-    onBackClick: (() -> Unit)? = null
+    onBackClick: (() -> Unit)? = null,
+    // ✨ NEW PARAMETER: Actions for the right side of the Top Bar
+    actions: @Composable RowScope.() -> Unit = {},
+    // ✨ NEW PARAMETERS for Edit/View Toggle
+    isEditing: Boolean = false,
+    onToggleEditView: (() -> Unit)? = null
 ) {
     val colors = TopAppBarDefaults.topAppBarColors(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -45,25 +51,32 @@ fun Header(
     )
 
     if (onBackClick != null) {
-        // --- DETAIL SCREEN MODE (Centered Title + Circle Back Button) ---
+        // --- DETAIL SCREEN MODE (Back Icon, Center Title/Button, Actions) ---
         CenterAlignedTopAppBar(
             modifier = modifier,
             title = {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Medium
-                )
+                // ✨ LOGIC ADDED: Display EditViewButton if the toggle function is provided.
+                if (onToggleEditView != null) {
+                    EditViewButton(
+                        isEditing = isEditing,
+                        onToggle = onToggleEditView
+                    )
+                } else {
+                    // Default title for new notes or settings screens
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             },
             navigationIcon = {
-                // The Circle Back Button
+                // The Circle Back Button (Left)
                 Surface(
                     onClick = onBackClick,
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     modifier = Modifier
-                        // FIX: Added padding(start = 8.dp).
-                        // Combined with default 4dp inset, this pushes it to ~12-16dp visual alignment.
                         .padding(start = 8.dp)
                         .size(48.dp)
                 ) {
@@ -77,13 +90,8 @@ fun Header(
                     }
                 }
             },
-            actions = {
-                // Dummy box to balance the center alignment perfectly
-                // We increased start padding, so we should balance the end spacer slightly if needed,
-                // but CenterAlignedTopAppBar handles centering well on its own.
-                // Keeping 48dp is safe.
-                Spacer(modifier = Modifier.width(48.dp))
-            },
+            // The actions slot (Right) for the Save button
+            actions = actions,
             colors = colors
         )
     } else {
@@ -97,6 +105,7 @@ fun Header(
                     fontWeight = FontWeight.Medium
                 )
             },
+            // Existing Home Screen actions remain the same
             actions = {
                 if (onToggleView != null) {
                     FilledTonalIconButton(onClick = onToggleView) {

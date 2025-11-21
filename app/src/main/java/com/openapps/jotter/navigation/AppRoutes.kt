@@ -1,10 +1,25 @@
 package com.openapps.jotter.navigation
 
 object AppRoutes {
+    // --- Primary Screens ---
     const val HOME = "home"
+    const val SETTINGS = "settings"
+
+    // --- Note Management Screens ---
+    const val ARCHIVE = "archive"
+    const val TRASH = "trash"
+
+    // --- Utility Screens ---
     const val ADD_CATEGORY = "add_category"
-    const val SETTINGS = "settings" // New Route
-    const val ARCHIVE = "archive" // Added this
-    const val TRASH = "trash" // Add this
     const val BACKUP_RESTORE = "backup_restore"
+
+    // --- Note Detail/Edit Screen (Updated Name and Structure) ---
+    // Key used to pass the note's ID
+    const val NOTE_ID_KEY = "noteId"
+
+    // Base route name for the detail screen
+    const val NOTE_DETAIL = "note_detail"
+
+    // Helper property to get the route with the argument placeholder (for NavHost definition)
+    const val NOTE_DETAIL_ROUTE_WITH_ARGS = "$NOTE_DETAIL/{$NOTE_ID_KEY}"
 }

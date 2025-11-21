@@ -1,6 +1,6 @@
 package com.openapps.jotter.ui.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource // Import
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -11,14 +11,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api // Import ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember // Import remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role // Import Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
+// Use ExperimentalMaterial3Api to access the clickable parameters on the Card
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteCard(
     title: String,
@@ -38,13 +43,17 @@ fun NoteCard(
 
     Card(
         modifier = modifier
-            .then(sizeModifier) // Apply the calculated size
-            .clickable(onClick = onClick),
+            .then(sizeModifier), // Apply the calculated size
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             contentColor = MaterialTheme.colorScheme.onSurface
-        )
+        ),
+        // 👇 [FIX] Move onClick parameters inside the Card component
+        onClick = onClick,
+        // The default M3 card handles the ripple shape automatically when using these parameters:
+        interactionSource = remember { MutableInteractionSource() },
+        // indication parameter can be omitted or set to LocalIndication.current
     ) {
         Column(
             modifier = Modifier

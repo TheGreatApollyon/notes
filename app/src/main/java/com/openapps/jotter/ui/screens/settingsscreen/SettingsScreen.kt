@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Brightness2
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.openapps.jotter.ui.components.Header
 import com.openapps.jotter.ui.components.ClearAllDataDialog
+import com.openapps.jotter.ui.components.EditViewButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +71,7 @@ fun SettingsScreen(
     var isHapticEnabled by remember { mutableStateOf(true) }
     var isTrueBlackEnabled by remember { mutableStateOf(false) }
     var showClearAllDialog by remember { mutableStateOf(false) }
+    var defaultOpenInEdit by remember { mutableStateOf(false) }
 
     val trashCount = 3
 
@@ -116,6 +119,15 @@ fun SettingsScreen(
                         subtitle = "Adapt to wallpaper",
                         checked = isDynamicColor,
                         onCheckedChange = { isDynamicColor = it }
+                    )
+
+                    TinyGap()
+                    SettingsItemEditView(
+                        icon = Icons.Default.Edit,
+                        title = "Default View",
+                        subtitle = "Default open mode",
+                        isEditDefault = defaultOpenInEdit,
+                        onToggleEditDefault = { defaultOpenInEdit = it }
                     )
                 }
             }
@@ -320,6 +332,54 @@ fun SettingsItemSwitch(
                 uncheckedThumbColor = MaterialTheme.colorScheme.background,
                 uncheckedTrackColor = MaterialTheme.colorScheme.outline
             )
+        )
+    }
+}
+
+@Composable
+fun SettingsItemEditView(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    isEditDefault: Boolean,
+    onToggleEditDefault: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+
+        Spacer(modifier = Modifier.width(24.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            if (subtitle != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Use the existing EditViewButton component
+        EditViewButton(
+            isEditing = isEditDefault,
+            onToggle = { onToggleEditDefault(!isEditDefault) }
         )
     }
 }

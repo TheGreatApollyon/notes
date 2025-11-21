@@ -25,9 +25,10 @@ import com.openapps.jotter.ui.components.NoteCard
 
 @Composable
 fun HomeScreen(
-    // 1. Add this parameter so we can navigate out
+    onNoteClick: (Int) -> Unit,
+    onAddNoteClick: () -> Unit,
     onAddCategoryClick: () -> Unit,
-    onSettingsClick: () -> Unit // Add this
+    onSettingsClick: () -> Unit
 ) {
     var selectedCategory by remember { mutableStateOf("All") }
     var isGridView by remember { mutableStateOf(true) }
@@ -49,14 +50,14 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             Header(
-                title = "Jotter",
+                title = "Jotter.",
                 isGridView = isGridView,
                 onToggleView = { isGridView = !isGridView },
-                onSettingsClick = onSettingsClick // Connect it here
+                onSettingsClick = onSettingsClick
             )
         },
         floatingActionButton = {
-            FAB(onClick = { /* TODO: Create Note */ })
+            FAB(onClick = onAddNoteClick)
         }
     ) { innerPadding ->
         Column(
@@ -68,7 +69,6 @@ fun HomeScreen(
                 categories = categories,
                 selectedCategory = selectedCategory,
                 onCategorySelect = { selectedCategory = it },
-                // 2. Connect the component's click to the navigation callback
                 onAddCategoryClick = onAddCategoryClick,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -89,7 +89,7 @@ fun HomeScreen(
                         title = note.title,
                         content = note.content,
                         isGridView = isGridView,
-                        onClick = { /* TODO: Open Note */ }
+                        onClick = { onNoteClick(note.id) }
                     )
                 }
             }
