@@ -9,6 +9,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ViewList
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -36,7 +39,15 @@ fun Header(
     onToggleView: (() -> Unit)? = null,
     onSettingsClick: (() -> Unit)? = null,
     // Optional: Only used for Detail Screens
-    onBackClick: (() -> Unit)? = null
+    onBackClick: (() -> Unit)? = null,
+    // Save Action
+    onSaveClick: (() -> Unit)? = null,
+    isSaveEnabled: Boolean = false,
+    // ✨ NEW PARAMETER: Delete Action
+    onDeleteClick: (() -> Unit)? = null,
+    // Edit/View Toggle
+    isEditing: Boolean = false,
+    onToggleEditView: (() -> Unit)? = null
 ) {
     val colors = TopAppBarDefaults.topAppBarColors(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -45,32 +56,34 @@ fun Header(
     )
 
     if (onBackClick != null) {
-        // --- DETAIL SCREEN MODE (Centered Title + Circle Back Button) ---
+        // --- DETAIL SCREEN MODE ---
         CenterAlignedTopAppBar(
             modifier = modifier,
             title = {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Medium
-                )
+                if (onToggleEditView != null) {
+                    EditViewButton(
+                        isEditing = isEditing,
+                        onToggle = onToggleEditView
+                    )
+                } else {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             },
             navigationIcon = {
-                // The Circle Back Button
                 Surface(
                     onClick = onBackClick,
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier
-                        // FIX: Added padding(start = 8.dp).
-                        // Combined with default 4dp inset, this pushes it to ~12-16dp visual alignment.
-                        .padding(start = 8.dp)
-                        .size(48.dp)
+                    modifier = Modifier.padding(start = 8.dp).size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back",
+                            imageVector = if (isSaveEnabled) Icons.Default.Close else Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = if (isSaveEnabled) "Close" else "Back",
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
@@ -78,16 +91,47 @@ fun Header(
                 }
             },
             actions = {
-                // Dummy box to balance the center alignment perfectly
-                // We increased start padding, so we should balance the end spacer slightly if needed,
-                // but CenterAlignedTopAppBar handles centering well on its own.
-                // Keeping 48dp is safe.
-                Spacer(modifier = Modifier.width(48.dp))
+                // ✨ Logic: Show Delete if provided (View Mode), otherwise show Save (Edit Mode)
+                if (onDeleteClick != null) {
+                    Surface(
+                        onClick = onDeleteClick,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.padding(end = 8.dp).size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.error, // Red for delete
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                } else if (onSaveClick != null) {
+                    Surface(
+                        onClick = onSaveClick,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        enabled = isSaveEnabled,
+                        modifier = Modifier.padding(end = 8.dp).size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.Done,
+                                contentDescription = "Save",
+                                tint = if (isSaveEnabled) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
             },
             colors = colors
         )
     } else {
-        // --- HOME SCREEN MODE (Left Aligned + Action Buttons) ---
+        // --- HOME SCREEN MODE ---
         TopAppBar(
             modifier = modifier,
             title = {
@@ -107,7 +151,6 @@ fun Header(
                         )
                     }
                 }
-
                 if (onSettingsClick != null) {
                     Spacer(modifier = Modifier.width(8.dp))
                     FilledTonalIconButton(onClick = onSettingsClick) {
@@ -118,7 +161,6 @@ fun Header(
                         )
                     }
                 }
-                // Optical balance padding for Home Screen
                 Spacer(modifier = Modifier.width(8.dp))
             },
             colors = colors
