@@ -107,6 +107,9 @@ fun AppNavHost(
                 onSave = { title, content ->
                     // TODO: Mock save/update logic here
                     println("MOCK SAVE: Note ID $noteIdArg saved with title: $title")
+                },
+                onManageCategoryClick = {
+                    navController.navigate(AppRoutes.ADD_CATEGORY)
                 }
             )
         }

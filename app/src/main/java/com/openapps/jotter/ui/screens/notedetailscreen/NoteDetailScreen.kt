@@ -2,6 +2,7 @@ package com.openapps.jotter.ui.screens.notedetailscreen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.openapps.jotter.data.sampleNotes
+import com.openapps.jotter.ui.components.CategorySheet
 import com.openapps.jotter.ui.components.DeleteNoteDialog
 import com.openapps.jotter.ui.components.DiscardChangesDialog
 import com.openapps.jotter.ui.components.Header
@@ -56,7 +59,6 @@ fun NoteDetailScreen(
     noteId: Int? = null,
     initialTitle: String = "",
     initialContent: String = "",
-    // ✨ UPDATED: Reverted to single Category string
     category: String = "Uncategorized",
     isPinned: Boolean = false,
     isLocked: Boolean = false,
@@ -65,25 +67,34 @@ fun NoteDetailScreen(
     lastEdited: Long = System.currentTimeMillis(),
     onBackClick: () -> Unit,
     onSave: (title: String, content: String) -> Unit,
+    onManageCategoryClick: () -> Unit = {}
 ) {
     // 1. STATE
     var title by remember(noteId) { mutableStateOf(initialTitle) }
     var content by remember(noteId) { mutableStateOf(initialContent) }
+    var currentCategory by remember(noteId) { mutableStateOf(category) }
 
-    // ✨ STATE FIX: Track if the note exists
     var isNotePersisted by remember(noteId) { mutableStateOf(noteId != null) }
 
-    // Dialog & Keyboard State Logic
+    // Dialog & Keyboard State
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showCategorySheet by remember { mutableStateOf(false) }
     var pendingDiscard by remember { mutableStateOf(false) }
+
+    val availableCategories = remember {
+        sampleNotes.map { it.category }.distinct().sorted()
+    }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     val isEditing = noteId != null
 
-    val isContentModified = (title.trim() != initialTitle.trim()) || (content.trim() != initialContent.trim())
+    val isContentModified = (title.trim() != initialTitle.trim()) ||
+            (content.trim() != initialContent.trim()) ||
+            (currentCategory != category)
+
     val isSaveEnabled = isContentModified && (title.isNotBlank() || content.isNotBlank())
 
     // 2. VIEW/EDIT MODE
@@ -94,7 +105,6 @@ fun NoteDetailScreen(
         SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date(lastEdited))
     }
 
-    // WATCHER: If keyboard closes and we were waiting, show dialog
     LaunchedEffect(isImeVisible) {
         if (!isImeVisible && pendingDiscard) {
             pendingDiscard = false
@@ -102,7 +112,6 @@ fun NoteDetailScreen(
         }
     }
 
-    // Helper to handle back navigation logic safely
     fun handleBack() {
         if (isSaveEnabled) {
             if (isImeVisible) {
@@ -116,7 +125,6 @@ fun NoteDetailScreen(
         }
     }
 
-    // Intercept System Back Button
     BackHandler(enabled = isSaveEnabled) {
         handleBack()
     }
@@ -128,10 +136,7 @@ fun NoteDetailScreen(
                 title = "",
                 onBackClick = { handleBack() },
                 isEditing = !isViewMode,
-                // Show toggle if note is persisted
                 onToggleEditView = if (isNotePersisted) { { isViewMode = !isViewMode } } else null,
-
-                // Save Action (Edit Mode)
                 onSaveClick = {
                     if (isSaveEnabled) {
                         onSave(title.trim(), content.trim())
@@ -141,8 +146,6 @@ fun NoteDetailScreen(
                     }
                 },
                 isSaveEnabled = isSaveEnabled,
-
-                // Delete Action (View Mode Only)
                 onDeleteClick = if (isViewMode) {
                     { showDeleteDialog = true }
                 } else {
@@ -168,16 +171,17 @@ fun NoteDetailScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left: Primary Tag Chip (Using first tag or Uncategorized)
+                // Left: Primary Tag Chip
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                        // ✨ FIX: Removed check for !isViewMode. Now clickable always.
+                        .clickable { showCategorySheet = true }
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    // ✨ UPDATED: Display the single category
                     Text(
-                        text = category.uppercase(),
+                        text = currentCategory.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -186,7 +190,6 @@ fun NoteDetailScreen(
 
                 // Right: Date + Status Icons
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // ✨ Pinned Icon
                     if (isPinned) {
                         Icon(
                             imageVector = Icons.Default.PushPin,
@@ -196,12 +199,11 @@ fun NoteDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    // ✨ Locked Icon
                     if (isLocked) {
                         Icon(
                             imageVector = Icons.Default.Lock,
                             contentDescription = "Locked",
-                            tint = MaterialTheme.colorScheme.error, // Red lock
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -281,6 +283,21 @@ fun NoteDetailScreen(
         }
     }
 
+    // Category Sheet
+    if (showCategorySheet) {
+        CategorySheet(
+            categories = availableCategories,
+            selectedCategory = currentCategory,
+            onCategorySelect = { newCategory ->
+                currentCategory = newCategory
+                // ✨ FIX: Automatically switch to Edit Mode so Save button appears
+                isViewMode = false
+            },
+            onManageCategoriesClick = onManageCategoryClick,
+            onDismiss = { showCategorySheet = false }
+        )
+    }
+
     // Discard Logic
     if (showDiscardDialog) {
         DiscardChangesDialog(
@@ -288,12 +305,11 @@ fun NoteDetailScreen(
             onConfirm = {
                 showDiscardDialog = false
                 if (isNotePersisted) {
-                    // Existing (or Saved) Note -> Revert & View Mode
                     title = initialTitle
                     content = initialContent
+                    currentCategory = category
                     isViewMode = true
                 } else {
-                    // Never Saved -> Exit
                     onBackClick()
                 }
             }
