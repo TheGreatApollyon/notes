@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.openapps.jotter.ui.screens.addcategoryscreen.AddCategoryScreen
 import com.openapps.jotter.ui.screens.archivescreen.ArchiveScreen // Make sure to import this
+import com.openapps.jotter.ui.screens.backuprestore.BackupRestoreScreen
 import com.openapps.jotter.ui.screens.homescreen.HomeScreen
 import com.openapps.jotter.ui.screens.settingsscreen.SettingsScreen
 import com.openapps.jotter.ui.screens.trashscreen.TrashScreen
@@ -55,7 +56,8 @@ fun AppNavHost(
                 onArchiveClick = {
                     navController.navigate(AppRoutes.ARCHIVE)
                 },
-                onTrashClick = { navController.navigate(AppRoutes.TRASH) }
+                onTrashClick = { navController.navigate(AppRoutes.TRASH) },
+                onBackupRestoreClick = { navController.navigate(AppRoutes.BACKUP_RESTORE) }
             )
         }
 
@@ -71,6 +73,12 @@ fun AppNavHost(
         // 2. Add Trash Route
         composable(AppRoutes.TRASH) {
             TrashScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(AppRoutes.BACKUP_RESTORE) {
+            BackupRestoreScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

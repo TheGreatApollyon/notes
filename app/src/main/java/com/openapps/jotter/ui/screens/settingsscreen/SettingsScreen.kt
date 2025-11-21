@@ -58,7 +58,8 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     onManageTagsClick: () -> Unit,
     onArchiveClick: () -> Unit,
-    onTrashClick: () -> Unit
+    onTrashClick: () -> Unit,
+    onBackupRestoreClick: () -> Unit // Add this
 ) {
     // Dummy state
     var isDarkMode by remember { mutableStateOf(false) }
@@ -185,7 +186,7 @@ fun SettingsScreen(
                         icon = Icons.Default.Backup,
                         title = "Backup & Restore",
                         subtitle = "Export or import notes",
-                        onClick = { /* TODO */ }
+                        onClick = onBackupRestoreClick // Connect it here
                     )
                     TinyGap()
 
