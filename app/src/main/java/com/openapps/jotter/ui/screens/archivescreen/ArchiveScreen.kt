@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
@@ -30,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,6 +41,7 @@ import java.util.Locale
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,7 +92,7 @@ fun ArchiveScreen(
                     }
                 },
                 actions = {
-                    // ✨ REFACTORED: Restore All Button (Using Circular Surface)
+                    // Restore All Button
                     if (canRestoreAll) {
                         Surface(
                             onClick = onRestoreAllClick,
@@ -106,18 +105,20 @@ fun ArchiveScreen(
                                 Icon(
                                     imageVector = Icons.Default.Restore,
                                     contentDescription = "Restore All",
-                                    tint = MaterialTheme.colorScheme.primary, // Ensure primary tint
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    // ✨ FIX: Removed the extra Spacer(8.dp) here to fix symmetry
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = Color.Unspecified,
+                    navigationIconContentColor = Color.Unspecified,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    actionIconContentColor = Color.Unspecified
                 )
             )
         }
