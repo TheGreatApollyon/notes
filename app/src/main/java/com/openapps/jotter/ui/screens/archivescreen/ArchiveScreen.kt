@@ -29,8 +29,10 @@ import java.util.Locale
 fun ArchiveScreen(
     onBackClick: () -> Unit
 ) {
-    // In a real app, you would filter for { it.isArchived }
-    val archivedNotes = sampleNotes.reversed()
+    // ✨ UPDATED: Filter sampleNotes to only show archived notes (and exclude trashed ones)
+    val archivedNotes = remember {
+        sampleNotes.filter { it.isArchived && !it.isTrashed }
+    }
 
     // Helper for Date Formatting
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
@@ -77,7 +79,6 @@ fun ArchiveScreen(
                         NoteCard(
                             title = note.title,
                             content = note.content,
-                            // ✨ NEW PARAMS ADDED
                             date = dateStr,
                             category = note.category,
                             isPinned = note.isPinned,

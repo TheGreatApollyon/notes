@@ -25,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.openapps.jotter.data.sampleNotes
 import com.openapps.jotter.ui.components.EmptyTrashDialog
 import com.openapps.jotter.ui.components.Header
@@ -33,6 +32,7 @@ import com.openapps.jotter.ui.components.NoteCard
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun TrashScreen(
@@ -41,8 +41,11 @@ fun TrashScreen(
     // State to control dialog visibility
     var showEmptyTrashDialog by remember { mutableStateOf(false) }
 
-    // Mock Data
-    val trashedNotes = sampleNotes.take(3)
+    // ✨ UPDATED: Filter sampleNotes to only show trashed notes (and exclude archived ones)
+    // Note: We currently don't have sample notes marked as isTrashed=true, so this list will be empty
+    val trashedNotes = remember {
+        sampleNotes.filter { it.isTrashed && !it.isArchived }
+    }
 
     // Helper for Date Formatting
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
@@ -102,7 +105,6 @@ fun TrashScreen(
                         NoteCard(
                             title = note.title,
                             content = note.content,
-                            // ✨ NEW PARAMS ADDED
                             date = dateStr,
                             category = note.category,
                             isPinned = note.isPinned,
