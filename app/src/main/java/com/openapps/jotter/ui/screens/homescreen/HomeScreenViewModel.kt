@@ -2,9 +2,9 @@ package com.openapps.jotter.ui.screens.homescreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.openapps.jotter.data.Note
+import com.openapps.jotter.data.model.Note // Use the new Note Entity
+import com.openapps.jotter.data.repository.NotesRepository // Inject the new Notes Repository
 import com.openapps.jotter.data.repository.UserPreferencesRepository
-import com.openapps.jotter.data.sampleNotes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,24 +16,34 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
-    private val repository: UserPreferencesRepository
+    // 1. Inject both Repositories
+    private val notesRepository: NotesRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
-    // Internal flows for data that isn't in DataStore yet (Notes & Category)
-    private val _notesFlow = MutableStateFlow(sampleNotes)
+    // Internal flow for category selection (remains local)
     private val _categoryFlow = MutableStateFlow("All")
 
     // 1. Reactive UI State
-    // Combines DataStore prefs + Local Notes + Local Category Selection
+    // Combines Notes Flow from Room + User Prefs Flow from DataStore + Local Category
     val uiState: StateFlow<UiState> = combine(
-        repository.userPreferencesFlow,
-        _notesFlow,
+        notesRepository.getAllNotes(), // <-- Data now comes directly from Room/Repository
+        userPreferencesRepository.userPreferencesFlow,
         _categoryFlow
-    ) { prefs, notes, category ->
+    ) { notes, prefs, category ->
+
+        // --- Filtering Logic (Moved to ViewModel) ---
+        val filteredNotes = when (category) {
+            "All"     -> notes
+            "Pinned"  -> notes.filter { it.isPinned }
+            "Locked"  -> notes.filter { it.isLocked }
+            else      -> notes.filter { it.category == category }
+        }
+
         UiState(
-            allNotes = notes,
+            allNotes = filteredNotes, // Filtered list based on category
             selectedCategory = category,
-            isGridView = prefs.isGridView // <--- Controlled by DataStore
+            isGridView = prefs.isGridView // Controlled by DataStore
         )
     }.stateIn(
         scope = viewModelScope,
@@ -50,10 +60,10 @@ class HomeScreenViewModel @Inject constructor(
     // 2. Actions
 
     fun toggleGridView() {
-        // We read the current value from the reactive state and flip it
+        // Reads current value from state and flips it via DataStore
         val currentIsGrid = uiState.value.isGridView
         viewModelScope.launch {
-            repository.setGridView(!currentIsGrid)
+            userPreferencesRepository.setGridView(!currentIsGrid)
         }
     }
 
@@ -61,19 +71,8 @@ class HomeScreenViewModel @Inject constructor(
         _categoryFlow.value = category
     }
 
-    fun onNoteClicked(noteId: Int) {
-        // Navigation event handled by UI callback
-    }
-
-    fun onAddNoteClick() {
-        // Navigation event handled by UI callback
-    }
-
-    fun onAddCategoryClick() {
-        // Navigation event handled by UI callback
-    }
-
-    fun onSettingsClick() {
-        // Navigation event handled by UI callback
-    }
+    fun onNoteClicked(noteId: Int) { }
+    fun onAddNoteClick() { }
+    fun onAddCategoryClick() { }
+    fun onSettingsClick() { }
 }
