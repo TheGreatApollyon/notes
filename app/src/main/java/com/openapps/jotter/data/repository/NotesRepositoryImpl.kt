@@ -1,6 +1,8 @@
 package com.openapps.jotter.data.repository
 
+import com.openapps.jotter.data.model.Category // ✨ Add Import
 import com.openapps.jotter.data.model.Note
+import com.openapps.jotter.data.source.CategoryDao // ✨ Add Import
 import com.openapps.jotter.data.source.NoteDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -9,7 +11,8 @@ import javax.inject.Inject
  * Concrete implementation of the NotesRepository interface, using the local Room DAO.
  */
 class NotesRepositoryImpl @Inject constructor(
-    private val noteDao: NoteDao // Inject the DAO provided by Room/Hilt
+    private val noteDao: NoteDao, // ✨ Added missing comma here
+    private val categoryDao: CategoryDao
 ) : NotesRepository {
 
     // --- Read Operations ---
@@ -77,4 +80,22 @@ class NotesRepositoryImpl @Inject constructor(
     }
 
     override fun getCategories(): Flow<List<String>> = noteDao.getCategories()
+
+    // --- Backup & Restore Implementation ---
+
+    override suspend fun getBackupData(): Pair<List<Note>, List<Category>> {
+        val notes = noteDao.getAllNotesSync()
+        val categories = categoryDao.getAllCategoriesSync()
+        return Pair(notes, categories)
+    }
+
+    override suspend fun restoreBackupData(notes: List<Note>, categories: List<Category>) {
+        // 1. Wipe existing data
+        noteDao.deleteAllNotes()
+        categoryDao.deleteAllCategories()
+
+        // 2. Insert backup data
+        noteDao.insertAll(notes)
+        categoryDao.insertAll(categories)
+    }
 }
