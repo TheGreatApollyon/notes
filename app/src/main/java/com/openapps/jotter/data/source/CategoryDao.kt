@@ -23,4 +23,16 @@ interface CategoryDao {
     // Delete a category by name (using the primary key)
     @Query("DELETE FROM categories WHERE name = :name")
     suspend fun deleteCategoryByName(name: String)
+
+    // ✨ NEW: Bulk Insert for Restore
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(categories: List<Category>)
+
+    // ✨ NEW: Bulk Delete for Restore
+    @Query("DELETE FROM categories")
+    suspend fun deleteAllCategories()
+
+    // Snapshot for Backup
+    @Query("SELECT * FROM categories")
+    suspend fun getAllCategoriesSync(): List<Category>
 }

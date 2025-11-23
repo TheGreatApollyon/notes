@@ -53,4 +53,16 @@ interface NoteDao {
     // Get a Flow of all unique, non-blank categories used in notes
     @Query("SELECT DISTINCT category FROM notes WHERE category IS NOT NULL AND category != ''")
     fun getCategories(): Flow<List<String>>
+
+    // ✨ NEW: Bulk Insert for Restore
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(notes: List<Note>)
+
+    // ✨ NEW: Bulk Delete for Restore (Clears existing data)
+    @Query("DELETE FROM notes")
+    suspend fun deleteAllNotes()
+
+    // Snapshot for Backup
+    @Query("SELECT * FROM notes")
+    suspend fun getAllNotesSync(): List<Note>
 }

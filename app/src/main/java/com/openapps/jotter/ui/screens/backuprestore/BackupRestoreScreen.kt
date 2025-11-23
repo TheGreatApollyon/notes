@@ -1,5 +1,8 @@
 package com.openapps.jotter.ui.screens.backuprestore
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,10 +40,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,8 +55,53 @@ fun BackupRestoreScreen(
     onBackClick: () -> Unit,
     viewModel: BackupRestoreScreenViewModel = hiltViewModel()
 ) {
-    // Collect UI state
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // 1. EXPORT LAUNCHER: Opens "Save as" dialog
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let { safeUri ->
+            // Trigger ViewModel to generate JSON
+            viewModel.exportNotes { jsonString ->
+                try {
+                    // Write JSON to the selected file URI
+                    context.contentResolver.openOutputStream(safeUri)?.use { output ->
+                        output.write(jsonString.toByteArray())
+                    }
+                    Toast.makeText(context, "Backup saved successfully", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    Toast.makeText(context, "Export failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    // 2. IMPORT LAUNCHER: Opens file picker
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { safeUri ->
+            try {
+                val inputStream = context.contentResolver.openInputStream(safeUri)
+                if (inputStream != null) {
+                    viewModel.importNotes(inputStream)
+                    Toast.makeText(context, "Restoring data...", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "Import failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    // Show Success Toast based on state
+    if (uiState.lastImportSuccess == true) {
+        Toast.makeText(context, "Data restored successfully!", Toast.LENGTH_SHORT).show()
+        viewModel.clearError() // Reset state
+    }
 
     Scaffold(
         topBar = {
@@ -116,7 +168,7 @@ fun BackupRestoreScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Data is exported as a local encrypted file.",
+                        text = "Data is exported as a local, readable JSON file. Keep it safe.",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -128,24 +180,27 @@ fun BackupRestoreScreen(
                 BackupRestoreItem(
                     icon = Icons.Default.Upload,
                     title = "Export Notes",
-                    subtitle = "Save all notes and tags to a local file (.jotter)",
-                    onClick = { viewModel.exportNotes() }
+                    subtitle = "Save all notes and tags to a local file",
+                    onClick = {
+                        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                        exportLauncher.launch("jotter_backup_$timeStamp.json")
+                    }
                 )
                 TinyGap()
                 BackupRestoreItem(
                     icon = Icons.Default.Download,
                     title = "Import Notes",
-                    subtitle = "Restore data from a previously exported (.jotter) file",
-                    onClick = { viewModel.importNotes() }
+                    subtitle = "Restore data from a previously exported file",
+                    onClick = { importLauncher.launch("application/json") }
                 )
             }
 
-            // Optional: show status messages at bottom
+            // Status messages
             if (uiState.isExportInProgress || uiState.isImportInProgress) {
                 Text(
-                    text = "Operation in progress…",
+                    text = "Processing...",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
@@ -163,11 +218,11 @@ fun BackupRestoreScreen(
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
-
         }
     }
 }
 
+// ... (Your Helper Composables: TinyGap, SettingsGroup, BackupRestoreItem remain the same)
 @Composable
 fun TinyGap() {
     Column(

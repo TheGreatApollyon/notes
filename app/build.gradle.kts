@@ -77,4 +77,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(libs.androidx.datastore.preferences)
+
+    implementation(libs.gson)
 }

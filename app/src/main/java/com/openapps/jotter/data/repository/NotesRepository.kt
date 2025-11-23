@@ -1,11 +1,11 @@
 package com.openapps.jotter.data.repository
 
+import com.openapps.jotter.data.model.Category // ✨ CRITICAL MISSING IMPORT
 import com.openapps.jotter.data.model.Note
 import kotlinx.coroutines.flow.Flow
 
 /**
  * Defines the contract for data operations related to Note entities.
- * The ViewModels depend on this interface, not the concrete implementation.
  */
 interface NotesRepository {
 
@@ -14,6 +14,9 @@ interface NotesRepository {
     fun getArchivedNotes(): Flow<List<Note>>
     fun getTrashedNotes(): Flow<List<Note>>
     suspend fun getNoteById(noteId: Int): Note?
+
+    // Category Read
+    fun getCategories(): Flow<List<String>>
 
     // --- Write/Update Operations ---
     suspend fun addNote(note: Note): Long
@@ -29,5 +32,7 @@ interface NotesRepository {
     suspend fun deleteNote(note: Note)
     suspend fun emptyTrash()
 
-    fun getCategories(): Flow<List<String>>
+    // --- Backup & Restore ---
+    suspend fun getBackupData(): Pair<List<Note>, List<Category>>
+    suspend fun restoreBackupData(notes: List<Note>, categories: List<Category>)
 }
