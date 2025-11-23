@@ -2,9 +2,9 @@ package com.openapps.jotter.ui.screens.trashscreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.openapps.jotter.data.Note
+import com.openapps.jotter.data.model.Note
+import com.openapps.jotter.data.repository.NotesRepository
 import com.openapps.jotter.data.repository.UserPreferencesRepository
-import com.openapps.jotter.data.sampleNotes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,24 +16,22 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TrashScreenViewModel @Inject constructor(
-    private val repository: UserPreferencesRepository
+    private val notesRepository: NotesRepository, // Inject the notes repository
+    private val userPreferencesRepository: UserPreferencesRepository // Existing User Prefs
 ) : ViewModel() {
-
-    // Internal flow for trashed notes (Still mocking for now)
-    private val _trashedNotesFlow = MutableStateFlow(emptyList<Note>())
 
     // Internal state for dialogs (UI-specific ephemeral state)
     private val _showEmptyTrashDialog = MutableStateFlow(false)
 
-    // Combine Repository preferences (for isGridView) with notes data and dialog state
+    // Combine Notes Flow from Room + User Prefs Flow + Dialog State
     val uiState: StateFlow<UiState> = combine(
-        repository.userPreferencesFlow,
-        _trashedNotesFlow,
+        notesRepository.getTrashedNotes(), // <-- Data now comes directly from Room
+        userPreferencesRepository.userPreferencesFlow,
         _showEmptyTrashDialog
-    ) { prefs, notes, showDialog ->
+    ) { notes, prefs, showDialog ->
         UiState(
             trashedNotes = notes,
-            isGridView = prefs.isGridView, // ✨ Now observing global state
+            isGridView = prefs.isGridView,
             showEmptyTrashDialog = showDialog
         )
     }.stateIn(
@@ -44,21 +42,11 @@ class TrashScreenViewModel @Inject constructor(
 
     data class UiState(
         val trashedNotes: List<Note> = emptyList(),
-        val isGridView: Boolean = true, // ✨ Added isGridView state
+        val isGridView: Boolean = true,
         val showEmptyTrashDialog: Boolean = false
     )
 
-    init {
-        loadMockTrashedNotes()
-    }
-
-    private fun loadMockTrashedNotes() {
-        viewModelScope.launch {
-            // Load mock data (Filtered here for simplicity)
-            val notes = sampleNotes.filter { it.isTrashed && !it.isArchived }
-            _trashedNotesFlow.value = notes
-        }
-    }
+    // Actions now call the Repository's suspend functions
 
     fun onEmptyTrashClicked() {
         _showEmptyTrashDialog.value = true
@@ -66,11 +54,8 @@ class TrashScreenViewModel @Inject constructor(
 
     fun confirmEmptyTrash() {
         viewModelScope.launch {
-            // For mock data scenario: clear the list
-            _trashedNotesFlow.value = emptyList()
+            notesRepository.emptyTrash() // Call the repository function
             _showEmptyTrashDialog.value = false
-
-            // Future Note: Call repository.emptyTrash() here
         }
     }
 
@@ -79,6 +64,6 @@ class TrashScreenViewModel @Inject constructor(
     }
 
     fun onNoteClicked(noteId: Int) {
-        // handle note click if needed
+        // handle note click (e.g., navigation)
     }
 }

@@ -63,7 +63,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.openapps.jotter.data.sampleNotes
 import com.openapps.jotter.ui.components.CategorySheet
 import com.openapps.jotter.ui.components.DeleteNoteDialog
 import com.openapps.jotter.ui.components.DiscardChangesDialog
@@ -92,9 +91,9 @@ fun NoteDetailScreen(
     var showRestoreNoteDialog by remember { mutableStateOf(false) }
     var pendingDiscard by remember { mutableStateOf(false) }
 
-    // Helper for categories (In real app, fetch from VM/Repository)
+    // Helper for categories (FIXED: Removed sampleNotes dependency)
     val availableCategories = remember {
-        sampleNotes.map { it.category }.distinct().sorted()
+        listOf("Work", "Personal", "Ideas", "Shopping").sorted()
     }
 
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -366,7 +365,7 @@ fun NoteDetailScreen(
             BasicTextField(
                 value = uiState.title,
                 onValueChange = { viewModel.updateTitle(it) },
-                // ✨ FIX: Read-only if in View Mode OR if Archived/Trashed
+                // Read-only if in View Mode OR if Archived/Trashed
                 readOnly = isViewMode || isArchivedOrTrashed,
                 textStyle = TextStyle(
                     fontSize = 30.sp,
@@ -398,7 +397,7 @@ fun NoteDetailScreen(
             BasicTextField(
                 value = uiState.content,
                 onValueChange = { viewModel.updateContent(it) },
-                // ✨ FIX: Read-only if in View Mode OR if Archived/Trashed
+                // Read-only if in View Mode OR if Archived/Trashed
                 readOnly = isViewMode || isArchivedOrTrashed,
                 textStyle = TextStyle(
                     fontSize = 18.sp,
