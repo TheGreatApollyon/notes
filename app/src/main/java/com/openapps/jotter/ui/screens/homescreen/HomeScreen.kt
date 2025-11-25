@@ -46,10 +46,6 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // 🛑 FIX: Remove local category derivation, which relied on the filtered list.
-    // The ViewModel must provide the full category list (allAvailableCategories).
-    // The 'filteredNotes' derivation logic remains, but now uses the validated state from VM.
-
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
 
     Scaffold(
@@ -110,7 +106,7 @@ fun HomeScreen(
             LazyVerticalStaggeredGrid(
                 columns              = StaggeredGridCells.Fixed(if (uiState.isGridView) 2 else 1),
                 modifier             = Modifier.fillMaxSize(),
-                contentPadding       = PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp),
+                contentPadding       = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalItemSpacing  = 12.dp
             ) {
