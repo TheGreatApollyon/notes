@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface NoteDao {
 
-    // Get all active notes (non-archived, non-trashed)
-    @Query("SELECT * FROM notes WHERE isArchived = 0 AND isTrashed = 0 ORDER BY updatedTime DESC")
+    // Get all active notes (non-archived, non-trashed), pinned notes first
+    @Query("SELECT * FROM notes WHERE isArchived = 0 AND isTrashed = 0 ORDER BY isPinned DESC, updatedTime DESC")
     fun getAllNotes(): Flow<List<Note>>
 
     // Get a single note by ID

@@ -113,7 +113,7 @@ fun NoteCard(
 
                         // Spacer only if we have both icons in this row
                         if (isPinned && (isLocked && !isGridView)) {
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
                         }
 
                         // Lock only shows top-right in LIST view
