@@ -18,48 +18,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80,
-    background = Color(0xFF1C1B1F),
-    surface = Color(0xFF1C1B1F),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFFE6E1E5),
-    onSurface = Color(0xFFE6E1E5),
-    surfaceContainer = Color(0xFF2D2C31)
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    surfaceContainer = Color(0xFFF1EDF1)
-)
-
-private val TrueBlackColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80,
-    background = Color.Black,
-    surface = Color.Black,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFFE6E1E5),
-    onSurface = Color(0xFFE6E1E5),
-    surfaceContainer = Color(0xFF1C1C1C)
-)
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun JotterTheme(
@@ -84,8 +42,14 @@ fun JotterTheme(
                 dynamicLightColorScheme(context)
             }
         }
-        isDarkTheme -> if (isTrueBlackEnabled) TrueBlackColorScheme else DarkColorScheme
-        else -> LightColorScheme
+        isDarkTheme -> {
+            if (isTrueBlackEnabled) {
+                darkColorScheme(background = Color.Black, surface = Color.Black)
+            } else {
+                darkColorScheme() // Use Material Design's default dark color scheme
+            }
+        }
+        else -> lightColorScheme() // Use Material Design's default light color scheme
     }
 
     val view = LocalView.current
