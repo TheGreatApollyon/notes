@@ -12,6 +12,7 @@ object AppRoutes {
     // --- Utility Screens ---
     const val ADD_CATEGORY = "add_category"
     const val BACKUP_RESTORE = "backup_restore"
+    const val PRIVACY_POLICY = "privacy_policy"
 
     // --- Note Detail/Edit Screen (Updated Name and Structure) ---
     // Key used to pass the note's ID

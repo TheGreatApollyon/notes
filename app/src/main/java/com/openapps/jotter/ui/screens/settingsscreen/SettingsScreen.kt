@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Brightness2
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
@@ -72,6 +73,7 @@ fun SettingsScreen(
     onArchiveClick: () -> Unit,
     onTrashClick: () -> Unit,
     onBackupRestoreClick: () -> Unit,
+    onPrivacyPolicyClick: () -> Unit,
     viewModel: SettingsScreenViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -294,13 +296,13 @@ fun SettingsScreen(
                             SettingsItemArrow(
                                 icon = Icons.Default.Lock,
                                 title = "Privacy Policy",
-                                onClick = { }
+                                onClick = onPrivacyPolicyClick
                             )
                         }
                     }
 
                     item {
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(0.dp))
                     }
                 }
 
@@ -398,9 +400,22 @@ fun SettingsItemSwitch(
             colors = SwitchDefaults.colors(
                 checkedThumbColor = MaterialTheme.colorScheme.background,
                 checkedTrackColor = MaterialTheme.colorScheme.primary,
+                // Use onBackground to ensure dynamic contrast against the background color
+                checkedIconColor = MaterialTheme.colorScheme.onBackground,
                 uncheckedThumbColor = MaterialTheme.colorScheme.background,
                 uncheckedTrackColor = MaterialTheme.colorScheme.outline
-            )
+            ),
+            thumbContent = if (checked) {
+                {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                }
+            } else {
+                null
+            }
         )
     }
 }
