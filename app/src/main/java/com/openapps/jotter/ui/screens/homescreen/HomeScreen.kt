@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -50,6 +51,11 @@ fun HomeScreen(
     val listState = rememberLazyStaggeredGridState()
 
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
+    
+    // Scroll to top smoothly whenever the selected category changes
+    LaunchedEffect(uiState.selectedCategory) {
+        listState.animateScrollToItem(0)
+    }
 
     Scaffold(
         topBar = {
