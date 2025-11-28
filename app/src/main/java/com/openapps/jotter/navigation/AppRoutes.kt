@@ -13,6 +13,7 @@ object AppRoutes {
     const val ADD_CATEGORY = "add_category"
     const val BACKUP_RESTORE = "backup_restore"
     const val PRIVACY_POLICY = "privacy_policy"
+    const val ABOUT = "about"
 
     // --- Note Detail/Edit Screen (Updated Name and Structure) ---
     // Key used to pass the note's ID

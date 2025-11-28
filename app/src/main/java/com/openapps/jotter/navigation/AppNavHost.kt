@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.openapps.jotter.ui.screens.aboutscreen.AboutScreen
 import com.openapps.jotter.ui.screens.addcategoryscreen.AddCategoryScreen
 import com.openapps.jotter.ui.screens.archivescreen.ArchiveScreen
 import com.openapps.jotter.ui.screens.backuprestore.BackupRestoreScreen
@@ -50,7 +51,8 @@ fun AppNavHost(
                 onArchiveClick = { navController.navigate(AppRoutes.ARCHIVE) },
                 onTrashClick = { navController.navigate(AppRoutes.TRASH) },
                 onBackupRestoreClick = { navController.navigate(AppRoutes.BACKUP_RESTORE) },
-                onPrivacyPolicyClick = { navController.navigate(AppRoutes.PRIVACY_POLICY) }
+                onPrivacyPolicyClick = { navController.navigate(AppRoutes.PRIVACY_POLICY) },
+                onAboutClick = { navController.navigate(AppRoutes.ABOUT) }
                 // Note: onLaunchBiometricPrompt needs to be added here from MainActivity
                 // when implementing app lock.
             )
@@ -77,6 +79,10 @@ fun AppNavHost(
 
         composable(AppRoutes.PRIVACY_POLICY) {
             PrivacyPolicyScreen(onBackClick = { navController.popBackStack() })
+        }
+
+        composable(AppRoutes.ABOUT) {
+            AboutScreen(onBackClick = { navController.popBackStack() })
         }
 
         // 💡 Consolidated Note Detail Screen:

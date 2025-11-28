@@ -75,6 +75,7 @@ fun SettingsScreen(
     onTrashClick: () -> Unit,
     onBackupRestoreClick: () -> Unit,
     onPrivacyPolicyClick: () -> Unit,
+    onAboutClick: () -> Unit,
     viewModel: SettingsScreenViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -291,7 +292,7 @@ fun SettingsScreen(
                                 icon = Icons.Default.Info,
                                 title = "Version",
                                 subtitle = "1.0.0 (Alpha)",
-                                onClick = { }
+                                onClick = onAboutClick
                             )
                             TinyGap()
 
