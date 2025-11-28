@@ -13,7 +13,7 @@ interface CategoryDao {
     // ✨ FIX: Get all categories, EXCLUDING the empty string ("") category.
     // This prevents the empty chip from appearing in the Home Screen filter bar.
     // In CategoryDao.kt
-    @Query("SELECT * FROM categories WHERE name != '' ORDER BY name ASC")
+    @Query("SELECT * FROM categories WHERE name != ''")
     fun getAllCategories(): Flow<List<Category>>
 
     // Insert a new category. Ignore if the category name already exists.

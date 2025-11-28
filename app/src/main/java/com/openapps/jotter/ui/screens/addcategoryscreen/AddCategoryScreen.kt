@@ -1,7 +1,9 @@
 package com.openapps.jotter.ui.screens.addcategoryscreen
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -230,7 +232,7 @@ fun AddCategoryScreen(
 
             item(span = StaggeredGridItemSpan.FullLine) {
                 Text(
-                    text         = "EXISTING TAGS (Alphabetically Sorted)",
+                    text         = "EXISTING TAGS", // Removed "Alphabetically Sorted"
                     style        = MaterialTheme.typography.labelMedium,
                     fontWeight   = FontWeight.Bold,
                     color        = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -242,6 +244,10 @@ fun AddCategoryScreen(
             // CategoryChip rendering is now simplified
             items(categories, key = { it }) { category ->
                 CategoryChip(
+                    modifier   = Modifier.animateItem(
+                        fadeInSpec = tween(300),
+                        fadeOutSpec = tween(300)
+                    ),
                     text       = category,
                     elevation  = 0.dp,
                     onDelete   = { viewModel.removeCategory(category) },
@@ -257,6 +263,7 @@ fun AddCategoryScreen(
 
 @Composable
 fun CategoryChip(
+    modifier: Modifier = Modifier,
     text       : String,
     elevation  : androidx.compose.ui.unit.Dp = 0.dp,
     onDelete   : () -> Unit,
@@ -266,7 +273,7 @@ fun CategoryChip(
         color         = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape         = RoundedCornerShape(8.dp),
         border        = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier      = Modifier
+        modifier      = modifier
             .fillMaxWidth()
             .height(40.dp),
         shadowElevation= elevation

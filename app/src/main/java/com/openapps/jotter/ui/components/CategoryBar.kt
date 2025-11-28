@@ -89,10 +89,17 @@ fun CategoryBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        itemsIndexed(displayList) { _, category ->
+        itemsIndexed(
+            items = displayList,
+            key = { _, category -> category }
+        ) { _, category ->
             val isSelected = category == selectedCategory
 
             FilterChip(
+                modifier = Modifier.animateItem(
+                    fadeInSpec = tween(300),
+                    fadeOutSpec = tween(300)
+                ),
                 selected = isSelected,
                 onClick = {
                     if (isSelected && category != "All") {
@@ -108,8 +115,12 @@ fun CategoryBar(
 
         // ✨ FIX: Conditionally render the Add chip based on the new parameter
         if (showAddButton) {
-            item {
+            item(key = "AddCategory") {
                 FilterChip(
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = tween(300),
+                        fadeOutSpec = tween(300)
+                    ),
                     selected = false,
                     onClick = onAddCategoryClick,
                     label = { Text("Add") },

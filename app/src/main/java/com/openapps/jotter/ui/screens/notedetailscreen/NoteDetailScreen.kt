@@ -359,24 +359,24 @@ fun NoteDetailScreen(
 
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (uiState.isPinned) {
-                        Icon(
-                            imageVector = Icons.Default.PushPin,
-                            contentDescription = "Pinned",
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    if (uiState.isLocked) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "Locked",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
+//                    if (uiState.isPinned) {
+//                        Icon(
+//                            imageVector = Icons.Default.PushPin,
+//                            contentDescription = "Pinned",
+//                            tint = MaterialTheme.colorScheme.secondary,
+//                            modifier = Modifier.size(14.dp)
+//                        )
+//                        Spacer(modifier = Modifier.width(8.dp))
+//                    }
+//                    if (uiState.isLocked) {
+//                        Icon(
+//                            imageVector = Icons.Default.Lock,
+//                            contentDescription = "Locked",
+//                            tint = MaterialTheme.colorScheme.error,
+//                            modifier = Modifier.size(14.dp)
+//                        )
+//                        Spacer(modifier = Modifier.width(8.dp))
+//                    }
                     // Show Archive/Trash Icon (Optional Metadata)
                     if (uiState.isArchived) {
                         Icon(
