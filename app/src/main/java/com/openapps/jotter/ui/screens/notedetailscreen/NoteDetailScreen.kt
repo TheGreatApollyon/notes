@@ -117,7 +117,8 @@ fun NoteDetailScreen(
     }
 
     // Check for modifications to enable Save button
-    val isSaveEnabled = !isViewMode && (uiState.title.isNotBlank() || uiState.content.isNotBlank())
+    // Updated to check isModified from ViewModel
+    val isSaveEnabled = !isViewMode && uiState.isModified && (uiState.title.isNotBlank() || uiState.content.isNotBlank())
 
     val dateString = remember(uiState.lastEdited) {
         SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(uiState.createdTime))
@@ -131,7 +132,8 @@ fun NoteDetailScreen(
     }
 
     fun handleBack() {
-        if (isSaveEnabled) {
+        // Use isModified to determine if we need to prompt for discard
+        if (!isViewMode && uiState.isModified) {
             if (isImeVisible) {
                 pendingDiscard = true
                 keyboardController?.hide()
@@ -179,7 +181,8 @@ fun NoteDetailScreen(
                         modifier = Modifier.padding(start = 12.dp).size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            val showCloseIcon = !isViewMode
+                            // Only show Close (X) if in Edit Mode AND Modified
+                            val showCloseIcon = !isViewMode && uiState.isModified
                             Icon(
                                 imageVector = if (showCloseIcon) Icons.Default.Close else Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = if (showCloseIcon) "Close" else "Back",

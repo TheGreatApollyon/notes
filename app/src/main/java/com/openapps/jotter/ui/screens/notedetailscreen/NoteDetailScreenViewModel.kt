@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.openapps.jotter.data.model.Note
 import com.openapps.jotter.data.repository.CategoryRepository
 import com.openapps.jotter.data.repository.NotesRepository
-import com.openapps.jotter.data.repository.UserPreferences // Import UserPreferences model
-import com.openapps.jotter.data.repository.UserPreferencesRepository // Import User Prefs Repository
+import com.openapps.jotter.data.repository.UserPreferences
+import com.openapps.jotter.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,12 +25,11 @@ class NoteDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val notesRepository: NotesRepository,
     private val categoryRepository: CategoryRepository,
-    private val userPreferencesRepository: UserPreferencesRepository // ✨ ADDED: Inject User Prefs Repository
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val noteId: Int? = savedStateHandle.get<Int>("noteId")
 
-    // NEW: Expose the user preferences flow for the Composable to read the setting
     val userPreferences: StateFlow<UserPreferences> = userPreferencesRepository.userPreferencesFlow
         .stateIn(viewModelScope, SharingStarted.Lazily, UserPreferences())
 
@@ -38,7 +37,7 @@ class NoteDetailViewModel @Inject constructor(
         val id: Int? = null,
         val title: String = "",
         val content: String = "",
-        val category: String = "", // Empty string default
+        val category: String = "",
         val isPinned: Boolean = false,
         val isLocked: Boolean = false,
         val isArchived: Boolean = false,
@@ -46,13 +45,15 @@ class NoteDetailViewModel @Inject constructor(
         val createdTime: Long = System.currentTimeMillis(),
         val lastEdited: Long = System.currentTimeMillis(),
         val isNotePersisted: Boolean = false,
-        val isLoading: Boolean = true
+        val isLoading: Boolean = true,
+        val isModified: Boolean = false
     )
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-    // Expose the live list of categories for the CategorySheet
+    private var originalState: UiState? = null
+
     val availableCategories: StateFlow<List<String>> = categoryRepository.getAllCategories()
         .map { categoryList -> categoryList.map { it.name } }
         .stateIn(
@@ -65,12 +66,13 @@ class NoteDetailViewModel @Inject constructor(
         if (noteId != null && noteId != -1) {
             loadNote(noteId)
         } else {
-            _uiState.update { it.copy(isNotePersisted = false, isLoading = false) }
+            val initialState = UiState(isNotePersisted = false, isLoading = false)
+            _uiState.update { initialState }
+            originalState = initialState
         }
         observeCategoryCleanup()
     }
 
-    // ✨ NEW FUNCTION: Observes available categories and resets note's category if it was deleted
     private fun observeCategoryCleanup() {
         viewModelScope.launch {
             availableCategories
@@ -81,40 +83,39 @@ class NoteDetailViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(category = "")
                         }
+                        checkForChanges()
                     }
                 }
         }
     }
 
-    // --- Data Loading ---
-
     private fun loadNote(id: Int) {
         viewModelScope.launch {
             val note = notesRepository.getNoteById(id)
             if (note != null) {
-                _uiState.update {
-                    it.copy(
-                        id = note.id,
-                        title = note.title,
-                        content = note.content,
-                        category = note.category,
-                        isPinned = note.isPinned,
-                        isLocked = note.isLocked,
-                        isArchived = note.isArchived,
-                        isTrashed = note.isTrashed,
-                        createdTime = note.createdTime,
-                        lastEdited = note.updatedTime,
-                        isNotePersisted = true,
-                        isLoading = false
-                    )
-                }
+                val newState = UiState(
+                    id = note.id,
+                    title = note.title,
+                    content = note.content,
+                    category = note.category,
+                    isPinned = note.isPinned,
+                    isLocked = note.isLocked,
+                    isArchived = note.isArchived,
+                    isTrashed = note.isTrashed,
+                    createdTime = note.createdTime,
+                    lastEdited = note.updatedTime,
+                    isNotePersisted = true,
+                    isLoading = false,
+                    isModified = false
+                )
+                _uiState.update { newState }
+                originalState = newState
             } else {
                 _uiState.value = UiState(isLoading = false)
             }
         }
     }
 
-    // Helper function to save status changes (Pin/Lock) without triggering a full content save
     private fun saveNoteStatus() {
         viewModelScope.launch {
             val currentState = uiState.value
@@ -136,18 +137,31 @@ class NoteDetailViewModel @Inject constructor(
         }
     }
 
-    // --- User Actions ---
+    private fun checkForChanges() {
+        val current = _uiState.value
+        val original = originalState ?: return
+        val modified = current.title != original.title ||
+                       current.content != original.content ||
+                       current.category != original.category
+        
+        if (current.isModified != modified) {
+            _uiState.update { it.copy(isModified = modified) }
+        }
+    }
 
     fun updateTitle(newTitle: String) {
         _uiState.update { it.copy(title = newTitle) }
+        checkForChanges()
     }
 
     fun updateContent(newContent: String) {
         _uiState.update { it.copy(content = newContent) }
+        checkForChanges()
     }
 
     fun updateCategory(newCategory: String) {
         _uiState.update { it.copy(category = newCategory) }
+        checkForChanges()
     }
 
     fun togglePin() {
@@ -164,7 +178,6 @@ class NoteDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
 
-            // 1. CHECK & INSERT: Ensure the category exists in the Category table
             if (currentState.category.isNotBlank()) {
                 categoryRepository.insertCategory(currentState.category)
             }
@@ -190,16 +203,25 @@ class NoteDetailViewModel @Inject constructor(
                 idAfterSave = newIdLong.toInt()
             }
 
-            // On success: Update local state with new ID and persistence status
             idAfterSave?.let { freshNoteId ->
                 notesRepository.getNoteById(freshNoteId)?.let { freshNote ->
-                    _uiState.update {
-                        it.copy(
-                            id = freshNote.id,
-                            isNotePersisted = true,
-                            lastEdited = freshNote.updatedTime
-                        )
-                    }
+                    val freshState = UiState(
+                        id = freshNote.id,
+                        title = freshNote.title,
+                        content = freshNote.content,
+                        category = freshNote.category,
+                        isPinned = freshNote.isPinned,
+                        isLocked = freshNote.isLocked,
+                        isArchived = freshNote.isArchived,
+                        isTrashed = freshNote.isTrashed,
+                        createdTime = freshNote.createdTime,
+                        lastEdited = freshNote.updatedTime,
+                        isNotePersisted = true,
+                        isLoading = false,
+                        isModified = false
+                    )
+                    _uiState.update { freshState }
+                    originalState = freshState
                 }
             }
         }
@@ -218,20 +240,11 @@ class NoteDetailViewModel @Inject constructor(
         }
     }
 
-    // In NoteDetailViewModel.kt (near deleteNote() function)
-
     fun archiveNote() {
         viewModelScope.launch {
             val note = uiState.value
-
-            // Construct a Note object with the necessary ID to archive it in the repository.
             val noteToArchive = Note(id = note.id ?: 0)
-
-            // Call the repository function
             notesRepository.archiveNote(noteToArchive)
-
-            // Note: The UI will navigate away after the confirmation,
-            // but the repository call correctly updates the DB state.
         }
     }
 
