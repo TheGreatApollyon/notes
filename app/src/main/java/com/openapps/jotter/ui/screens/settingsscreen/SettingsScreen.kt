@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Brightness2
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
@@ -196,6 +197,15 @@ fun SettingsScreen(
                     // --- Group 2: General & Navigation ---
                     item {
                         SettingsGroup(title = "General & Navigation") {
+
+                            SettingsItemArrow(
+                                icon = Icons.AutoMirrored.Filled.Label,
+                                title = "Manage Tags",
+                                subtitle = "Add or remove note tags",
+                                onClick = onManageTagsClick
+                            )
+                            TinyGap()
+
                             SettingsItemArrow(
                                 icon = Icons.Default.Archive,
                                 title = "Archived Notes",
@@ -209,14 +219,6 @@ fun SettingsScreen(
                                 title = "Trash",
                                 subtitle = "Permanently deleted after 7 days",
                                 onClick = onTrashClick
-                            )
-                            TinyGap()
-
-                            SettingsItemArrow(
-                                icon = Icons.AutoMirrored.Filled.Label,
-                                title = "Manage Tags",
-                                subtitle = "Add, edit, or remove note tags",
-                                onClick = onManageTagsClick
                             )
                             TinyGap()
 
@@ -400,21 +402,18 @@ fun SettingsItemSwitch(
             colors = SwitchDefaults.colors(
                 checkedThumbColor = MaterialTheme.colorScheme.background,
                 checkedTrackColor = MaterialTheme.colorScheme.primary,
-                // Use onBackground to ensure dynamic contrast against the background color
                 checkedIconColor = MaterialTheme.colorScheme.onBackground,
                 uncheckedThumbColor = MaterialTheme.colorScheme.background,
-                uncheckedTrackColor = MaterialTheme.colorScheme.outline
+                uncheckedTrackColor = MaterialTheme.colorScheme.outline,
+                uncheckedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
-            thumbContent = if (checked) {
-                {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            } else {
-                null
+            thumbContent = {
+                val icon = if (checked) Icons.Filled.Check else Icons.Filled.Close
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
             }
         )
     }

@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -51,15 +52,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -70,6 +74,8 @@ import com.openapps.jotter.ui.components.EditViewButton
 import com.openapps.jotter.ui.components.NoteActionDialog
 import com.openapps.jotter.ui.components.PinLockBar
 import com.openapps.jotter.ui.components.RestoreNoteDialog
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -99,10 +105,13 @@ fun NoteDetailScreen(
     // Controls visibility of the combined Archive/Trash dialog
     var showNoteActionDialog by remember { mutableStateOf(false) }
 
+    val scope = rememberCoroutineScope()
+
     // Helper for categories (FIXED: Now observing live database data)
     val availableCategories by viewModel.availableCategories.collectAsState()
 
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     // 2. VIEW MODE LOGIC
@@ -117,7 +126,8 @@ fun NoteDetailScreen(
     }
 
     // Check for modifications to enable Save button
-    val isSaveEnabled = !isViewMode && (uiState.title.isNotBlank() || uiState.content.isNotBlank())
+    // Updated to check isModified from ViewModel
+    val isSaveEnabled = !isViewMode && uiState.isModified && (uiState.title.isNotBlank() || uiState.content.isNotBlank())
 
     val dateString = remember(uiState.lastEdited) {
         SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(uiState.createdTime))
@@ -131,7 +141,8 @@ fun NoteDetailScreen(
     }
 
     fun handleBack() {
-        if (isSaveEnabled) {
+        // Use isModified to determine if we need to prompt for discard
+        if (!isViewMode && uiState.isModified) {
             if (isImeVisible) {
                 pendingDiscard = true
                 keyboardController?.hide()
@@ -176,10 +187,13 @@ fun NoteDetailScreen(
                         onClick = { handleBack() },
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier = Modifier.padding(start = 12.dp).size(48.dp)
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            val showCloseIcon = !isViewMode
+                            // Only show Close (X) if in Edit Mode AND Modified
+                            val showCloseIcon = !isViewMode && uiState.isModified
                             Icon(
                                 imageVector = if (showCloseIcon) Icons.Default.Close else Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = if (showCloseIcon) "Close" else "Back",
@@ -197,7 +211,9 @@ fun NoteDetailScreen(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceContainer,
                             enabled = true,
-                            modifier = Modifier.padding(end = 12.dp).size(48.dp)
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
@@ -214,7 +230,9 @@ fun NoteDetailScreen(
                             onClick = { showNoteActionDialog = true }, // Trigger the action dialog
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceContainer,
-                            modifier = Modifier.padding(end = 12.dp).size(48.dp)
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
@@ -236,7 +254,9 @@ fun NoteDetailScreen(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceContainer,
                             enabled = isSaveEnabled,
-                            modifier = Modifier.padding(end = 12.dp).size(48.dp)
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
@@ -310,7 +330,20 @@ fun NoteDetailScreen(
                                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
                             }
                         )
-                        .clickable { if (!isViewMode && !isArchivedOrTrashed) showCategorySheet = true }
+                        .clickable {
+                            if (!isViewMode && !isArchivedOrTrashed) {
+                                if (isImeVisible) {
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
+                                    scope.launch {
+                                        delay(200)
+                                        showCategorySheet = true
+                                    }
+                                } else {
+                                    showCategorySheet = true
+                                }
+                            }
+                        }
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
@@ -389,6 +422,9 @@ fun NoteDetailScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words
+                ),
                 modifier = Modifier.fillMaxWidth(),
                 decorationBox = { innerTextField ->
                     Box {
@@ -422,6 +458,9 @@ fun NoteDetailScreen(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
                 ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences
+                ),
                 modifier = Modifier.fillMaxWidth(),
                 decorationBox = { innerTextField ->
                     Box {
