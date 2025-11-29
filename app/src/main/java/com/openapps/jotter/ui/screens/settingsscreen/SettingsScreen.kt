@@ -244,26 +244,26 @@ fun SettingsScreen(
                     }
 
                     // --- Group 3: Security ---
-//                    item {
-//                        SettingsGroup(title = "Security") {
-//                            SettingsItemSwitch(
-//                                icon = Icons.Default.Fingerprint,
-//                                title = "Biometric Unlock",
-//                                subtitle = "Require fingerprint to open",
-//                                checked = uiState.isBiometricEnabled,
-//                                onCheckedChange = { viewModel.updateBiometricEnabled(it) }
-//                            )
-//                            TinyGap()
-//
-//                            SettingsItemSwitch(
-//                                icon = Icons.Default.Security,
-//                                title = "Secure Screen",
-//                                subtitle = "Hide content in recent apps",
-//                                checked = uiState.isSecureMode,
-//                                onCheckedChange = { viewModel.updateSecureMode(it) }
-//                            )
-//                        }
-//                    }
+                    item {
+                        SettingsGroup(title = "Security") {
+                            SettingsItemSwitch(
+                                icon = Icons.Default.Fingerprint,
+                                title = "Note Lock",
+                                subtitle = "Require fingerprint to open",
+                                checked = uiState.isBiometricEnabled,
+                                onCheckedChange = { viewModel.updateBiometricEnabled(it) }
+                            )
+                            TinyGap()
+
+                            SettingsItemSwitch(
+                                icon = Icons.Default.Security,
+                                title = "Secure Screen",
+                                subtitle = "Hide content in recent apps",
+                                checked = uiState.isSecureMode,
+                                onCheckedChange = { viewModel.updateSecureMode(it) }
+                            )
+                        }
+                    }
 
                     // --- Group 4: Data Management & Reset ---
                     item {
