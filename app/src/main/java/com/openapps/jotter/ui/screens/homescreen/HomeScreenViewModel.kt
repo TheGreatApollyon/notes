@@ -64,7 +64,8 @@ class HomeScreenViewModel @Inject constructor(
             selectedCategory = validatedCategory, // Validated state
             isGridView = prefs.isGridView,
             allAvailableCategories = allAvailableCategories,
-            showAddCategoryButton = prefs.showAddCategoryButton // ✨ ADDED: Map preference from repository
+            showAddCategoryButton = prefs.showAddCategoryButton, // ✨ ADDED: Map preference from repository
+            isBiometricEnabled = prefs.isBiometricEnabled // ✨ ADDED: Propagate lock preference
         )
     }.stateIn(
         scope = viewModelScope,
@@ -77,7 +78,8 @@ class HomeScreenViewModel @Inject constructor(
         val selectedCategory: String = "All",
         val isGridView: Boolean = true,
         val allAvailableCategories: List<String> = emptyList(),
-        val showAddCategoryButton: Boolean = true // ✨ ADDED: New property for UI control
+        val showAddCategoryButton: Boolean = true, // ✨ ADDED: New property for UI control
+        val isBiometricEnabled: Boolean = false // ✨ ADDED: Check if lock is enabled globally
     )
 
     // 2. Actions

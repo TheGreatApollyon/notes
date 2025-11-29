@@ -43,6 +43,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -58,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -93,6 +97,8 @@ fun NoteDetailScreen(
     viewModel: NoteDetailViewModel = hiltViewModel()
 ) {
     val haptics = rememberJotterHaptics()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // 1. VIEWMODEL STATE
     val uiState by viewModel.uiState.collectAsState()
@@ -169,6 +175,7 @@ fun NoteDetailScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -301,7 +308,18 @@ fun NoteDetailScreen(
                         isPinned = uiState.isPinned,
                         isLocked = uiState.isLocked,
                         onTogglePin = { viewModel.togglePin() },
-                        onToggleLock = { viewModel.toggleLock() }
+                        onToggleLock = {
+                            if (userPrefs.isBiometricEnabled) {
+                                viewModel.toggleLock()
+                            } else {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "Enable Note Lock in Settings to use this feature",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            }
+                        }
                     )
                 }
             }

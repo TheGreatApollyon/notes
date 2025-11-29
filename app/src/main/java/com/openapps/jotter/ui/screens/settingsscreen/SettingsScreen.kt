@@ -1,5 +1,12 @@
 package com.openapps.jotter.ui.screens.settingsscreen
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +34,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Brightness2
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
@@ -35,6 +43,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Pattern
+import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Vibration
@@ -50,6 +60,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,13 +70,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.openapps.jotter.ui.components.ClearAllDataDialog
 import com.openapps.jotter.ui.components.EditViewButton
 import com.openapps.jotter.ui.components.GridListButton
 import com.openapps.jotter.ui.theme.rememberJotterHaptics
+import com.openapps.jotter.utils.AuthSupport
+import com.openapps.jotter.utils.BiometricAuthType
+import com.openapps.jotter.utils.BiometricAuthUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,6 +96,8 @@ fun SettingsScreen(
     viewModel: SettingsScreenViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val haptics = rememberJotterHaptics()
 
     if (uiState.isLoading) {
         Box(
@@ -91,6 +109,18 @@ fun SettingsScreen(
     }
 
     var showClearAllDialog by remember { mutableStateOf(false) }
+
+    // Handle "going back disables if no auth selected"
+    val handleBack = {
+        if (uiState.isBiometricEnabled && uiState.biometricAuthType == BiometricAuthType.NONE) {
+            viewModel.updateBiometricEnabled(false)
+        }
+        onBackClick()
+    }
+
+    BackHandler(enabled = true) {
+        handleBack()
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -107,7 +137,7 @@ fun SettingsScreen(
                 },
                 navigationIcon = {
                     Surface(
-                        onClick = onBackClick,
+                        onClick = handleBack,
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                         modifier = Modifier
@@ -246,14 +276,69 @@ fun SettingsScreen(
                     // --- Group 3: Security ---
                     item {
                         SettingsGroup(title = "Security") {
-                            SettingsItemSwitch(
-                                icon = Icons.Default.Fingerprint,
-                                title = "Note Lock",
-                                subtitle = "Require authentication to open",
-                                checked = uiState.isBiometricEnabled,
-                                onCheckedChange = { viewModel.updateBiometricEnabled(it) }
-                            )
-                            TinyGap()
+                            val authSupport = remember(context) {
+                                BiometricAuthUtil.getAuthenticationSupport(context)
+                            }
+                            
+                            val isBiometricAvailable = authSupport.hasFingerprint || authSupport.hasDeviceCredential
+
+                            AnimatedVisibility(
+                                visible = isBiometricAvailable,
+                                enter = fadeIn() + expandVertically(),
+                                exit = fadeOut() + shrinkVertically()
+                            ) {
+                                Column {
+                                    SettingsItemNoteLock(
+                                        title = "Note Lock",
+                                        subtitle = "Require authentication to open",
+                                        checked = uiState.isBiometricEnabled,
+                                        selectedType = uiState.biometricAuthType,
+                                        onCheckedChange = { isEnabled ->
+                                            if (isEnabled) {
+                                                // Enabling: Just update toggle, user MUST select auth type next
+                                                viewModel.updateBiometricEnabled(true)
+                                            } else {
+                                                // Disabling
+                                                if (uiState.biometricAuthType == BiometricAuthType.NONE) {
+                                                    // No auth set up, just disable without prompt
+                                                    viewModel.updateBiometricEnabled(false)
+                                                } else {
+                                                    // Auth set up, require verification
+                                                    val activity = context as? FragmentActivity
+                                                    if (activity != null) {
+                                                        BiometricAuthUtil.authenticate(
+                                                            activity = activity,
+                                                            title = "Confirm Identity",
+                                                            subtitle = "Authenticate to disable Note Lock",
+                                                            onSuccess = {
+                                                                viewModel.updateBiometricEnabled(false)
+                                                            },
+                                                            onError = { }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onSelectAuthType = { type ->
+                                            // Confirm selection with authentication
+                                            val activity = context as? FragmentActivity
+                                            if (activity != null) {
+                                                BiometricAuthUtil.authenticate(
+                                                    activity = activity,
+                                                    title = "Confirm Selection",
+                                                    subtitle = "Authenticate to set lock method",
+                                                    onSuccess = {
+                                                        viewModel.updateBiometricAuthType(type)
+                                                    },
+                                                    onError = { }
+                                                )
+                                            }
+                                        },
+                                        authSupport = authSupport
+                                    )
+                                    TinyGap()
+                                }
+                            }
 
                             SettingsItemSwitch(
                                 icon = Icons.Default.Security,
@@ -426,6 +511,189 @@ fun SettingsItemSwitch(
         )
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsItemNoteLock(
+    title: String,
+    subtitle: String? = null,
+    checked: Boolean,
+    selectedType: BiometricAuthType,
+    onCheckedChange: (Boolean) -> Unit,
+    onSelectAuthType: (BiometricAuthType) -> Unit,
+    authSupport: AuthSupport
+) {
+    val haptics = rememberJotterHaptics()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        // Main Toggle Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Fingerprint,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(24.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                if (subtitle != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = {
+                    haptics.tick()
+                    onCheckedChange(it)
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.background,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                    checkedIconColor = MaterialTheme.colorScheme.onBackground,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.background,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.outline,
+                    uncheckedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                thumbContent = {
+                    val icon = if (checked) Icons.Filled.Check else Icons.Filled.Close
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                }
+            )
+        }
+
+        // Expanded Authentication Options
+        AnimatedVisibility(
+            visible = checked,
+            enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+            exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp), // Matches existing spacing
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (authSupport.hasFingerprint) {
+                    AuthenticationOptionCard(
+                        title = "Fingerprint",
+                        icon = Icons.Default.Fingerprint,
+                        isSelected = selectedType == BiometricAuthType.BIOMETRIC,
+                        onClick = {
+                            if (selectedType != BiometricAuthType.BIOMETRIC) {
+                                haptics.click()
+                                onSelectAuthType(BiometricAuthType.BIOMETRIC)
+                            }
+                        }
+                    )
+                }
+
+                // Only show "PIN / Pattern" if Fingerprint is NOT available but Device Credential IS.
+                if (!authSupport.hasFingerprint && authSupport.hasDeviceCredential) {
+                    AuthenticationOptionCard(
+                        title = "PIN / Pattern",
+                        icon = Icons.Default.Pin,
+                        isSelected = selectedType == BiometricAuthType.DEVICE_CREDENTIAL,
+                        onClick = {
+                            if (selectedType != BiometricAuthType.DEVICE_CREDENTIAL) {
+                                haptics.click()
+                                onSelectAuthType(BiometricAuthType.DEVICE_CREDENTIAL)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AuthenticationOptionCard(
+    title: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor),
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = contentColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (isSelected) {
+                    Text(
+                        text = "Active",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor.copy(alpha = 0.8f)
+                    )
+                } else {
+                    Text(
+                        text = "Tap to enable",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 fun SettingsItemEditView(

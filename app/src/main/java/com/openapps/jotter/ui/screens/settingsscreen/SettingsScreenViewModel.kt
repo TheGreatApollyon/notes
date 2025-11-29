@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openapps.jotter.data.repository.NotesRepository
 import com.openapps.jotter.data.repository.UserPreferencesRepository
+import com.openapps.jotter.utils.BiometricAuthType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,8 +31,8 @@ class SettingsScreenViewModel @Inject constructor(
                 defaultOpenInEdit = prefs.defaultOpenInEdit,
                 isHapticEnabled = prefs.isHapticEnabled,
                 isBiometricEnabled = prefs.isBiometricEnabled,
+                biometricAuthType = prefs.biometricAuthType, // ✨ ADDED
                 isSecureMode = prefs.isSecureMode,
-                // ✨ ADDED: Map the new preference field
                 showAddCategoryButton = prefs.showAddCategoryButton,
                 isGridView = prefs.isGridView
             )
@@ -44,22 +45,21 @@ class SettingsScreenViewModel @Inject constructor(
         )
 
     data class UiState(
-        val isLoading: Boolean = true, // Added loading state
+        val isLoading: Boolean = true,
         val isDarkMode: Boolean = false,
         val isTrueBlackEnabled: Boolean = false,
         val isDynamicColor: Boolean = true,
         val defaultOpenInEdit: Boolean = false,
         val isHapticEnabled: Boolean = true,
         val isBiometricEnabled: Boolean = false,
+        val biometricAuthType: BiometricAuthType = BiometricAuthType.NONE, // ✨ ADDED
         val isSecureMode: Boolean = false,
-        // ✨ ADDED: New UiState field
         val showAddCategoryButton: Boolean = true,
         val isGridView: Boolean = false
     )
 
     // 2. User Actions -> Call Repository
 
-    // ✨ NEW ACTION: Setter for the switch
     fun updateShowAddCategoryButton(show: Boolean) {
         viewModelScope.launch { repository.setShowAddCategoryButton(show) }
     }
@@ -85,14 +85,29 @@ class SettingsScreenViewModel @Inject constructor(
     }
 
     fun updateBiometricEnabled(isEnabled: Boolean) {
-        viewModelScope.launch { repository.setBiometric(isEnabled) }
+        viewModelScope.launch { 
+            repository.setBiometric(isEnabled) 
+            if (!isEnabled) {
+                repository.setBiometricAuthType(BiometricAuthType.NONE)
+            }
+        }
+    }
+
+    // ✨ ADDED
+    fun updateBiometricAuthType(type: BiometricAuthType) {
+        viewModelScope.launch { 
+            repository.setBiometricAuthType(type)
+            // If user selects a type, automatically enable the main toggle if it wasn't already
+            if (type != BiometricAuthType.NONE) {
+                repository.setBiometric(true)
+            }
+        }
     }
 
     fun updateSecureMode(isEnabled: Boolean) {
         viewModelScope.launch { repository.setSecureMode(isEnabled) }
     }
 
-    // ✨ UPDATED CLEAR FUNCTION
     fun clearAllData() {
         viewModelScope.launch {
             // 1. Wipe the Database (Notes & Categories)
