@@ -249,7 +249,7 @@ fun SettingsScreen(
                             SettingsItemSwitch(
                                 icon = Icons.Default.Fingerprint,
                                 title = "Note Lock",
-                                subtitle = "Require fingerprint to open",
+                                subtitle = "Require authentication to open",
                                 checked = uiState.isBiometricEnabled,
                                 onCheckedChange = { viewModel.updateBiometricEnabled(it) }
                             )
@@ -258,7 +258,7 @@ fun SettingsScreen(
                             SettingsItemSwitch(
                                 icon = Icons.Default.Security,
                                 title = "Secure Screen",
-                                subtitle = "Hide content in recent apps",
+                                subtitle = "Disable screenshots",
                                 checked = uiState.isSecureMode,
                                 onCheckedChange = { viewModel.updateSecureMode(it) }
                             )
