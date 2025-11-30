@@ -1,12 +1,14 @@
 package com.openapps.jotter
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.fragment.app.FragmentActivity
 import androidx.navigation.compose.rememberNavController
 import com.openapps.jotter.data.repository.UserPreferencesRepository
 import com.openapps.jotter.navigation.AppNavHost
@@ -16,7 +18,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
@@ -26,6 +28,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val userPreferences by userPreferencesRepository.userPreferencesFlow.collectAsState(initial = com.openapps.jotter.data.repository.UserPreferences())
+
+            LaunchedEffect(userPreferences.isSecureMode) {
+                if (userPreferences.isSecureMode) {
+                    // Prevents screenshots and shows a blank screen in Recents
+                    window.setFlags(
+                        WindowManager.LayoutParams.FLAG_SECURE,
+                        WindowManager.LayoutParams.FLAG_SECURE
+                    )
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
 
             JotterTheme(
                 isDarkTheme = userPreferences.isDarkMode,

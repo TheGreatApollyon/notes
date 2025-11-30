@@ -31,7 +31,6 @@ class SettingsScreenViewModel @Inject constructor(
                 isHapticEnabled = prefs.isHapticEnabled,
                 isBiometricEnabled = prefs.isBiometricEnabled,
                 isSecureMode = prefs.isSecureMode,
-                // ✨ ADDED: Map the new preference field
                 showAddCategoryButton = prefs.showAddCategoryButton,
                 isGridView = prefs.isGridView
             )
@@ -44,7 +43,7 @@ class SettingsScreenViewModel @Inject constructor(
         )
 
     data class UiState(
-        val isLoading: Boolean = true, // Added loading state
+        val isLoading: Boolean = true,
         val isDarkMode: Boolean = false,
         val isTrueBlackEnabled: Boolean = false,
         val isDynamicColor: Boolean = true,
@@ -52,14 +51,12 @@ class SettingsScreenViewModel @Inject constructor(
         val isHapticEnabled: Boolean = true,
         val isBiometricEnabled: Boolean = false,
         val isSecureMode: Boolean = false,
-        // ✨ ADDED: New UiState field
         val showAddCategoryButton: Boolean = true,
         val isGridView: Boolean = false
     )
 
     // 2. User Actions -> Call Repository
 
-    // ✨ NEW ACTION: Setter for the switch
     fun updateShowAddCategoryButton(show: Boolean) {
         viewModelScope.launch { repository.setShowAddCategoryButton(show) }
     }
@@ -85,14 +82,18 @@ class SettingsScreenViewModel @Inject constructor(
     }
 
     fun updateBiometricEnabled(isEnabled: Boolean) {
-        viewModelScope.launch { repository.setBiometric(isEnabled) }
+        viewModelScope.launch { 
+            repository.setBiometric(isEnabled) 
+            if (!isEnabled) {
+                notesRepository.unlockAllNotes() // ✨ Remove lock from all notes when disabling
+            }
+        }
     }
 
     fun updateSecureMode(isEnabled: Boolean) {
         viewModelScope.launch { repository.setSecureMode(isEnabled) }
     }
 
-    // ✨ UPDATED CLEAR FUNCTION
     fun clearAllData() {
         viewModelScope.launch {
             // 1. Wipe the Database (Notes & Categories)

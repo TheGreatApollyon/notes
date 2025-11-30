@@ -1,5 +1,11 @@
 package com.openapps.jotter.ui.screens.settingsscreen
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +41,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Vibration
@@ -59,13 +66,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.openapps.jotter.ui.components.ClearAllDataDialog
+import com.openapps.jotter.ui.components.DisableLockWarningDialog
 import com.openapps.jotter.ui.components.EditViewButton
 import com.openapps.jotter.ui.components.GridListButton
 import com.openapps.jotter.ui.theme.rememberJotterHaptics
+import com.openapps.jotter.utils.AuthSupport
+import com.openapps.jotter.utils.BiometricAuthUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,6 +92,8 @@ fun SettingsScreen(
     viewModel: SettingsScreenViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val haptics = rememberJotterHaptics()
 
     if (uiState.isLoading) {
         Box(
@@ -91,6 +105,11 @@ fun SettingsScreen(
     }
 
     var showClearAllDialog by remember { mutableStateOf(false) }
+    var showDisableLockWarningDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = true) {
+        onBackClick()
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -244,26 +263,60 @@ fun SettingsScreen(
                     }
 
                     // --- Group 3: Security ---
-//                    item {
-//                        SettingsGroup(title = "Security") {
-//                            SettingsItemSwitch(
-//                                icon = Icons.Default.Fingerprint,
-//                                title = "Biometric Unlock",
-//                                subtitle = "Require fingerprint to open",
-//                                checked = uiState.isBiometricEnabled,
-//                                onCheckedChange = { viewModel.updateBiometricEnabled(it) }
-//                            )
-//                            TinyGap()
-//
-//                            SettingsItemSwitch(
-//                                icon = Icons.Default.Security,
-//                                title = "Secure Screen",
-//                                subtitle = "Hide content in recent apps",
-//                                checked = uiState.isSecureMode,
-//                                onCheckedChange = { viewModel.updateSecureMode(it) }
-//                            )
-//                        }
-//                    }
+                    item {
+                        SettingsGroup(title = "Security") {
+                            val authSupport = remember(context) {
+                                BiometricAuthUtil.getAuthenticationSupport(context)
+                            }
+                            
+                            val isBiometricAvailable = authSupport.hasFingerprint || authSupport.hasDeviceCredential
+
+                            AnimatedVisibility(
+                                visible = isBiometricAvailable,
+                                enter = fadeIn() + expandVertically(),
+                                exit = fadeOut() + shrinkVertically()
+                            ) {
+                                Column {
+                                    SettingsItemNoteLock(
+                                        title = "Note Lock",
+                                        subtitle = "Require authentication to open",
+                                        checked = uiState.isBiometricEnabled,
+                                        authSupport = authSupport, // ✨ PASSED AuthSupport
+                                        onCheckedChange = { isEnabled ->
+                                            if (isEnabled) {
+                                                // Enabling: Just update toggle
+                                                viewModel.updateBiometricEnabled(true)
+                                            } else {
+                                                // Disabling: Require verification
+                                                val activity = context as? FragmentActivity
+                                                if (activity != null) {
+                                                    BiometricAuthUtil.authenticate(
+                                                        activity = activity,
+                                                        title = "Confirm Identity",
+                                                        subtitle = "Authenticate to disable Note Lock",
+                                                        onSuccess = {
+                                                            // Instead of disabling immediately, show warning dialog
+                                                            showDisableLockWarningDialog = true
+                                                        },
+                                                        onError = { }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    )
+                                    TinyGap()
+                                }
+                            }
+
+                            SettingsItemSwitch(
+                                icon = Icons.Default.Security,
+                                title = "Secure Screen",
+                                subtitle = "Disable screenshots",
+                                checked = uiState.isSecureMode,
+                                onCheckedChange = { viewModel.updateSecureMode(it) }
+                            )
+                        }
+                    }
 
                     // --- Group 4: Data Management & Reset ---
                     item {
@@ -290,7 +343,7 @@ fun SettingsScreen(
                     item {
                         SettingsGroup(title = "About") {
                             SettingsItemArrow(
-                                icon = Icons.Default.Lock,
+                                icon = Icons.Default.PrivacyTip, // ✨ CHANGED to PrivacyTip
                                 title = "Privacy Policy",
                                 onClick = onPrivacyPolicyClick
                             )
@@ -317,6 +370,16 @@ fun SettingsScreen(
                         onConfirm = {
                             showClearAllDialog = false
                             viewModel.clearAllData()
+                        }
+                    )
+                }
+
+                if (showDisableLockWarningDialog) {
+                    DisableLockWarningDialog(
+                        onDismiss = { showDisableLockWarningDialog = false },
+                        onConfirm = {
+                            showDisableLockWarningDialog = false
+                            viewModel.updateBiometricEnabled(false)
                         }
                     )
                 }
@@ -424,6 +487,84 @@ fun SettingsItemSwitch(
                 )
             }
         )
+    }
+}
+
+@Composable
+fun SettingsItemNoteLock(
+    title: String,
+    subtitle: String? = null,
+    checked: Boolean,
+    authSupport: AuthSupport,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val haptics = rememberJotterHaptics()
+
+    // Determine which icon to show
+    val icon = if (checked) {
+        if (authSupport.hasFingerprint) Icons.Default.Fingerprint else Icons.Default.Lock // Fallback to Lock if no FP (e.g. only PIN)
+    } else {
+        Icons.Default.Lock
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        // Main Toggle Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon, // ✨ DYNAMIC ICON
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(24.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                if (subtitle != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = {
+                    haptics.tick()
+                    onCheckedChange(it)
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.background,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                    checkedIconColor = MaterialTheme.colorScheme.onBackground,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.background,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.outline,
+                    uncheckedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                thumbContent = {
+                    val icon = if (checked) Icons.Filled.Check else Icons.Filled.Close
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                }
+            )
+        }
     }
 }
 

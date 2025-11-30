@@ -13,7 +13,7 @@ import javax.inject.Inject
 
 // 1. The Model: Holds our settings data
 data class UserPreferences(
-    val isGridView: Boolean = false, // <--- ADDED: Persist Grid/List state
+    val isGridView: Boolean = false,
     val isDarkMode: Boolean = false,
     val isTrueBlackEnabled: Boolean = false,
     val isDynamicColor: Boolean = true,
@@ -31,7 +31,7 @@ class UserPreferencesRepository @Inject constructor(
 
     // Define the keys for storing data
     private object Keys {
-        val IS_GRID_VIEW = booleanPreferencesKey("is_grid_view") // <--- ADDED Key
+        val IS_GRID_VIEW = booleanPreferencesKey("is_grid_view")
         val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
         val IS_TRUE_BLACK = booleanPreferencesKey("is_true_black")
         val IS_DYNAMIC_COLOR = booleanPreferencesKey("is_dynamic_color")
@@ -39,7 +39,7 @@ class UserPreferencesRepository @Inject constructor(
         val IS_HAPTIC = booleanPreferencesKey("is_haptic")
         val IS_BIOMETRIC = booleanPreferencesKey("is_biometric")
         val IS_SECURE_MODE = booleanPreferencesKey("is_secure_mode")
-        val SHOW_ADD_CATEGORY_BUTTON = booleanPreferencesKey("show_add_category_button") // ✨ ADD THIS LINE
+        val SHOW_ADD_CATEGORY_BUTTON = booleanPreferencesKey("show_add_category_button")
     }
 
     // Read Data (Exposed as a Flow)
@@ -65,7 +65,6 @@ class UserPreferencesRepository @Inject constructor(
             )
         }
 
-    // <--- ADDED Setter
     suspend fun setGridView(isGrid: Boolean) {
         dataStore.edit { it[Keys.IS_GRID_VIEW] = isGrid }
     }
@@ -100,18 +99,13 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun clearAllData() {
         dataStore.edit { preferences ->
-            // 1. Save the one setting we want to keep
             val keepAddButton = preferences[Keys.SHOW_ADD_CATEGORY_BUTTON] ?: true
-
-            // 2. Wipe everything
             preferences.clear()
-
-            // 3. Restore the saved setting
             preferences[Keys.SHOW_ADD_CATEGORY_BUTTON] = keepAddButton
         }
     }
 
-    suspend fun setShowAddCategoryButton(show: Boolean) { // ✨ ADD THIS FUNCTION
+    suspend fun setShowAddCategoryButton(show: Boolean) {
         dataStore.edit { it[Keys.SHOW_ADD_CATEGORY_BUTTON] = show }
     }
 }
