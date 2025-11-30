@@ -2,16 +2,16 @@ package com.openapps.jotter.data.source
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.openapps.jotter.data.model.Category // Import the new Category Entity
+import com.openapps.jotter.data.model.Category
 import com.openapps.jotter.data.model.Note
 
 /**
  * Defines the main access point for the Room database.
  */
 @Database(
-    entities = [Note::class, Category::class], // ✨ UPDATED: Added Category Entity
-    version = 3, // ✨ UPDATED: Version must be incremented
-    exportSchema = false
+    entities = [Note::class, Category::class],
+    version = 4, // ✨ UPDATED: Version must be incremented
+    exportSchema = false // ✨ FIX: Set to false to avoid build warnings
 )
 abstract class JotterDatabase : RoomDatabase() {
 
@@ -19,5 +19,5 @@ abstract class JotterDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
 
     // Abstract function to get the DAO for Categories
-    abstract fun categoryDao(): CategoryDao // ✨ ADDED: New DAO access
+    abstract fun categoryDao(): CategoryDao
 }

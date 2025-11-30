@@ -1,8 +1,10 @@
 package com.openapps.jotter.data.repository
 
-import com.openapps.jotter.data.model.Category // ✨ Add Import
+import androidx.room.withTransaction
+import com.openapps.jotter.data.model.Category
 import com.openapps.jotter.data.model.Note
-import com.openapps.jotter.data.source.CategoryDao // ✨ Add Import
+import com.openapps.jotter.data.source.CategoryDao
+import com.openapps.jotter.data.source.JotterDatabase
 import com.openapps.jotter.data.source.NoteDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -11,8 +13,9 @@ import javax.inject.Inject
  * Concrete implementation of the NotesRepository interface, using the local Room DAO.
  */
 class NotesRepositoryImpl @Inject constructor(
-    private val noteDao: NoteDao, // ✨ Added missing comma here
-    private val categoryDao: CategoryDao
+    private val noteDao: NoteDao,
+    private val categoryDao: CategoryDao,
+    private val database: JotterDatabase // ✨ NEW: Inject Database for Transactions
 ) : NotesRepository {
 
     // --- Read Operations ---
@@ -100,13 +103,16 @@ class NotesRepositoryImpl @Inject constructor(
     }
 
     override suspend fun restoreBackupData(notes: List<Note>, categories: List<Category>) {
-        // 1. Wipe existing data
-        noteDao.deleteAllNotes()
-        categoryDao.deleteAllCategories()
+        // ✨ FIX: Use Transaction to prevent partial restores or data loss on crash
+        database.withTransaction {
+            // 1. Wipe existing data
+            noteDao.deleteAllNotes()
+            categoryDao.deleteAllCategories()
 
-        // 2. Insert backup data
-        noteDao.insertAll(notes)
-        categoryDao.insertAll(categories)
+            // 2. Insert backup data
+            noteDao.insertAll(notes)
+            categoryDao.insertAll(categories)
+        }
     }
 
     override suspend fun clearAllDatabaseData() {

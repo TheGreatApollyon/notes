@@ -119,8 +119,13 @@ class BackupRestoreScreenViewModel @Inject constructor(
                 val jsonString = reader.readText()
                 val backupData = gson.fromJson(jsonString, BackupData::class.java)
 
+                // ✨ FIX: Null safety checks for imported data
+                // Gson might return null for missing fields even if Kotlin type is non-nullable
+                val safeNotes = backupData.notes ?: emptyList()
+                val safeCategories = backupData.categories ?: emptyList()
+
                 // 3. Restore to DB
-                repository.restoreBackupData(backupData.notes, backupData.categories)
+                repository.restoreBackupData(safeNotes, safeCategories)
 
                 // 4. Success
                 _internalUiState.update { it.copy(isImportInProgress = false, lastImportSuccess = true) }

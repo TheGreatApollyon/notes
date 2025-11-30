@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,10 +10,24 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+
 android {
     namespace = "com.openapps.jotter"
-    compileSdk {
-        version = release(36)
+    compileSdk = 36
+    signingConfigs {
+        create("release") {
+            if (localPropertiesFile.exists()) {
+                storeFile = file("Jotter.jks")
+                storePassword = localProperties.getProperty("JOTTER_KEYSTORE_PASSWORD")
+                keyAlias = localProperties.getProperty("JOTTER_KEY_ALIAS")
+                keyPassword = localProperties.getProperty("JOTTER_KEY_PASSWORD")
+            }
+        }
     }
 
     defaultConfig {
@@ -18,18 +35,19 @@ android {
         minSdk = 29
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0 Alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
