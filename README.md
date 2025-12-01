@@ -1,4 +1,4 @@
-# 📝 Jotter
+<h1 align="center">📝 Jotter</h1>
 
 **Simple. Secure. Notes.**
 
@@ -14,6 +14,21 @@ Get the latest version of **Jotter**:
 [![Download APK](https://img.shields.io/badge/Download-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/OpenAppsLabs/Jotter/releases/latest/download/app-release.apk)
 
 ---
+
+## 📱 Screenshots
+
+<p align="center">
+  <img src="screenshots/home.png" width="30%" />
+  <img src="screenshots/home with lock.png" width="30%" />
+  <img src="screenshots/note.png" width="30%" />
+</p>
+
+<p align="center">
+  <img src="screenshots/category.png" width="30%" />
+  <img src="screenshots/settings.png" width="30%" />
+  <img src="screenshots/about.png" width="30%" />
+</p>
+
 
 ## ✨ Features
 
