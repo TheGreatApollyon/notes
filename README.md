@@ -6,6 +6,15 @@ Jotter is a modern, open-source Android note-taking application built with Jetpa
 
 ---
 
+## 📥 Download
+
+Get the latest version of **Jotter**:
+
+[![Get it on GitHub](https://img.shields.io/badge/Get%20it%20on-GitHub-000000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/OpenAppsLabs/Jotter/releases/latest)
+[![Download APK](https://img.shields.io/badge/Download-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/OpenAppsLabs/Jotter/releases/latest/download/app-release.apk)
+
+---
+
 ## ✨ Features
 
 * **Material You Design:** Fully compatible with Material 3 dynamic theming.  
@@ -80,3 +89,6 @@ If you find Jotter useful, please consider ⭐ starring the repository to help o
 ## 📄 License
 
 Jotter is licensed under the [GNU GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
+
+## Stargazers over time
+[![Stargazers over time](https://starchart.cc/OpenAppsLabs/Jotter.svg?variant=adaptive)](https://starchart.cc/OpenAppsLabs/Jotter)
