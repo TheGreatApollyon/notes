@@ -12,6 +12,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.navigation.compose.rememberNavController
 import com.openapps.jotter.data.repository.UserPreferencesRepository
 import com.openapps.jotter.navigation.AppNavHost
+import com.openapps.jotter.ui.components.ChangelogManager
 import com.openapps.jotter.ui.theme.JotterTheme
 import com.openapps.jotter.ui.theme.LocalHapticEnabled
 import dagger.hilt.android.AndroidEntryPoint
@@ -31,7 +32,6 @@ class MainActivity : FragmentActivity() {
 
             LaunchedEffect(userPreferences.isSecureMode) {
                 if (userPreferences.isSecureMode) {
-                    // Prevents screenshots and shows a blank screen in Recents
                     window.setFlags(
                         WindowManager.LayoutParams.FLAG_SECURE,
                         WindowManager.LayoutParams.FLAG_SECURE
@@ -46,10 +46,11 @@ class MainActivity : FragmentActivity() {
                 isTrueBlackEnabled = userPreferences.isTrueBlackEnabled,
                 isDynamicColor = userPreferences.isDynamicColor
             ) {
-                // Provide the haptic preference globally
                 CompositionLocalProvider(LocalHapticEnabled provides userPreferences.isHapticEnabled) {
                     val navController = rememberNavController()
-                    AppNavHost(navController = navController)
+                    ChangelogManager {
+                        AppNavHost(navController = navController)
+                    }
                 }
             }
         }
