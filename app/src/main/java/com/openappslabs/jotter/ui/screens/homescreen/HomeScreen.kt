@@ -55,8 +55,6 @@ fun HomeScreen(
     val listState = rememberLazyStaggeredGridState()
     val context = LocalContext.current
 
-    val dateFormatter = remember { SimpleDateFormat("dd MMM", Locale.getDefault()) }
-    
     // Scroll to top smoothly whenever the selected category changes
     LaunchedEffect(uiState.selectedCategory) {
         listState.animateScrollToItem(0)
@@ -128,8 +126,8 @@ fun HomeScreen(
                 verticalItemSpacing  = 12.dp
             ) {
                 items(uiState.allNotes, key = { it.id }) { note -> // Now using VM's filtered list directly
-                    val dateStr = remember(note.createdTime) {
-                        dateFormatter.format(Date(note.createdTime))
+                    val dateStr = remember(note.createdTime, uiState.dateFormat) {
+                        SimpleDateFormat(uiState.dateFormat, Locale.getDefault()).format(Date(note.createdTime))
                     }
                     NoteCard(
                         title     = note.title,

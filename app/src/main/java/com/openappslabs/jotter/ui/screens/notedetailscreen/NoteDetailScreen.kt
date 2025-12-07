@@ -136,8 +136,11 @@ fun NoteDetailScreen(
     // Updated to check isModified from ViewModel
     val isSaveEnabled = !isViewMode && uiState.isModified && (uiState.title.isNotBlank() || uiState.content.isNotBlank())
 
-    val dateString = remember(uiState.lastEdited) {
-        SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(uiState.createdTime))
+    val dateString = remember(uiState.lastEdited, userPrefs.is24HourFormat, userPrefs.dateFormat) {
+        val timePattern = if (userPrefs.is24HourFormat) "HH:mm" else "hh:mm a"
+        val datePattern = userPrefs.dateFormat
+        val pattern = "$datePattern, $timePattern"
+        SimpleDateFormat(pattern, Locale.getDefault()).format(Date(uiState.createdTime))
     }
 
     LaunchedEffect(isImeVisible) {

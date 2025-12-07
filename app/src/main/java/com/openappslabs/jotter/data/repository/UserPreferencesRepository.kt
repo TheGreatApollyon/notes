@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -21,7 +22,9 @@ data class UserPreferences(
     val isHapticEnabled: Boolean = true,
     val isBiometricEnabled: Boolean = false,
     val isSecureMode: Boolean = false,
-    val showAddCategoryButton: Boolean = true
+    val showAddCategoryButton: Boolean = true,
+    val is24HourFormat: Boolean = false,
+    val dateFormat: String = "dd MMM"
 )
 
 // 2. The Repository: Handles saving/loading
@@ -40,6 +43,8 @@ class UserPreferencesRepository @Inject constructor(
         val IS_BIOMETRIC = booleanPreferencesKey("is_biometric")
         val IS_SECURE_MODE = booleanPreferencesKey("is_secure_mode")
         val SHOW_ADD_CATEGORY_BUTTON = booleanPreferencesKey("show_add_category_button")
+        val IS_24_HOUR_FORMAT = booleanPreferencesKey("is_24_hour_format")
+        val DATE_FORMAT = stringPreferencesKey("date_format")
     }
 
     // Read Data (Exposed as a Flow)
@@ -61,7 +66,9 @@ class UserPreferencesRepository @Inject constructor(
                 isHapticEnabled = preferences[Keys.IS_HAPTIC] ?: true,
                 isBiometricEnabled = preferences[Keys.IS_BIOMETRIC] ?: false,
                 isSecureMode = preferences[Keys.IS_SECURE_MODE] ?: false,
-                showAddCategoryButton = preferences[Keys.SHOW_ADD_CATEGORY_BUTTON] ?: true
+                showAddCategoryButton = preferences[Keys.SHOW_ADD_CATEGORY_BUTTON] ?: true,
+                is24HourFormat = preferences[Keys.IS_24_HOUR_FORMAT] ?: false,
+                dateFormat = preferences[Keys.DATE_FORMAT] ?: "dd MMM"
             )
         }
 
@@ -107,5 +114,13 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setShowAddCategoryButton(show: Boolean) {
         dataStore.edit { it[Keys.SHOW_ADD_CATEGORY_BUTTON] = show }
+    }
+
+    suspend fun setTimeFormat(is24Hour: Boolean) {
+        dataStore.edit { it[Keys.IS_24_HOUR_FORMAT] = is24Hour }
+    }
+
+    suspend fun setDateFormat(format: String) {
+        dataStore.edit { it[Keys.DATE_FORMAT] = format }
     }
 }

@@ -45,6 +45,8 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -74,6 +76,8 @@ import com.openappslabs.jotter.ui.components.ClearAllDataDialog
 import com.openappslabs.jotter.ui.components.DisableLockWarningDialog
 import com.openappslabs.jotter.ui.components.EditViewButton
 import com.openappslabs.jotter.ui.components.GridListButton
+import com.openappslabs.jotter.ui.components.TimeFormatButton
+import com.openappslabs.jotter.ui.components.DateFormatButton
 import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 import com.openappslabs.jotter.utils.AuthSupport
 import com.openappslabs.jotter.utils.BiometricAuthUtil
@@ -205,6 +209,28 @@ fun SettingsScreen(
                                 isGridView = uiState.isGridView,
                                 onToggle = {
                                     viewModel.updateGridView(!uiState.isGridView)
+                                }
+                            )
+
+                            TinyGap()
+
+                            SettingsItemTimeFormat(
+                                icon = Icons.Outlined.Schedule, // Use a clock icon
+                                title = "Default Time Format",
+                                subtitle = if (uiState.is24HourFormat) "24 Hour Clock" else "12 Hour (AM/PM)",
+                                is24Hour = uiState.is24HourFormat,
+                                onToggle = { viewModel.updateTimeFormat(it) }
+                            )
+
+                            TinyGap()
+
+                            SettingsItemDateFormat(
+                                icon = Icons.Outlined.CalendarMonth,
+                                title = "Date Format",
+                                subtitle = "Change how dates appear",
+                                currentFormat = uiState.dateFormat,
+                                onFormatSelected = { newFormat ->
+                                    viewModel.updateDateFormat(newFormat)
                                 }
                             )
                         }
@@ -722,5 +748,103 @@ fun SettingsItemArrow(
                 modifier = Modifier.size(24.dp)
             )
         }
+    }
+}
+
+@Composable
+fun SettingsItemTimeFormat(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    is24Hour: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    val haptics = rememberJotterHaptics()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+
+        Spacer(modifier = Modifier.width(24.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            if (subtitle != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Using the custom button component
+        TimeFormatButton(
+            is24Hour = is24Hour,
+            onToggle = {
+                haptics.tick()
+                onToggle(!is24Hour)
+            }
+        )
+    }
+}
+
+@Composable
+fun SettingsItemDateFormat(
+    icon: ImageVector,
+    title: String,
+    currentFormat: String,
+    onFormatSelected: (String) -> Unit,
+    subtitle: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+
+        Spacer(modifier = Modifier.width(24.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        DateFormatButton(
+            currentFormat = currentFormat,
+            onFormatSelected = onFormatSelected
+        )
     }
 }

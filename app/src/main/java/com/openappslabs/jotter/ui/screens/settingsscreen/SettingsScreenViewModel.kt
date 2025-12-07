@@ -32,13 +32,14 @@ class SettingsScreenViewModel @Inject constructor(
                 isBiometricEnabled = prefs.isBiometricEnabled,
                 isSecureMode = prefs.isSecureMode,
                 showAddCategoryButton = prefs.showAddCategoryButton,
-                isGridView = prefs.isGridView
+                isGridView = prefs.isGridView,
+                is24HourFormat = prefs.is24HourFormat,
+                dateFormat = prefs.dateFormat
             )
         }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            // Start with isLoading = true to prevent UI flicker
             initialValue = UiState(isLoading = true)
         )
 
@@ -52,7 +53,9 @@ class SettingsScreenViewModel @Inject constructor(
         val isBiometricEnabled: Boolean = false,
         val isSecureMode: Boolean = false,
         val showAddCategoryButton: Boolean = true,
-        val isGridView: Boolean = false
+        val isGridView: Boolean = false,
+        val is24HourFormat: Boolean = false,
+        val dateFormat: String = "dd MMM"
     )
 
     // 2. User Actions -> Call Repository
@@ -106,5 +109,13 @@ class SettingsScreenViewModel @Inject constructor(
 
     fun updateGridView(isGrid: Boolean) {
         viewModelScope.launch { repository.setGridView(isGrid) }
+    }
+
+    fun updateTimeFormat(is24Hour: Boolean) {
+        viewModelScope.launch { repository.setTimeFormat(is24Hour) }
+    }
+
+    fun updateDateFormat(format: String) {
+        viewModelScope.launch { repository.setDateFormat(format) }
     }
 }
