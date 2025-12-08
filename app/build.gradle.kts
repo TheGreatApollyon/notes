@@ -16,13 +16,10 @@ android {
     signingConfigs {
         create("release") {
             val localPropertiesFile = rootProject.file("local.properties")
-            // Only load keys if local.properties exists
             if (localPropertiesFile.exists()) {
                 val properties = Properties()
                 properties.load(FileInputStream(localPropertiesFile))
-                // READ PATH FROM LOCAL.PROPERTIES
                 val keyPath = properties.getProperty("storeFile")
-                // Only sign if the path was found
                 if (keyPath != null) {
                     storeFile = file(keyPath)
                     storePassword = properties.getProperty("JOTTER_KEYSTORE_PASSWORD")
@@ -33,9 +30,7 @@ android {
         }
     }
     dependenciesInfo {
-        // Disables dependency metadata when building APKs (for IzzyOnDroid/F-Droid)
         includeInApk = false
-        // Disables dependency metadata when building Android App Bundles (for Google Play)
         includeInBundle = false
     }
 
@@ -60,7 +55,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Fix: Check if local.properties exists to apply signing
             if (rootProject.file("local.properties").exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -80,6 +74,7 @@ android {
 }
 
 dependencies {
+    // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -96,24 +91,30 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    // Icons
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.reorderable)
 
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+
+    // Hilt DI
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
-
+    
+    // Room Database
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.lifecycle.runtime.compose)
-
+    
+    // Datastore
     implementation(libs.androidx.datastore.preferences)
 
+    // GSON
     implementation(libs.gson)
 
+    // Biometrics
     implementation(libs.androidx.biometric)
 }
