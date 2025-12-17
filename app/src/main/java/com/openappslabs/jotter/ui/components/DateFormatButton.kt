@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2025 Open Apps Labs
+ *
+ * This file is part of Jotter
+ *
+ * Jotter is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ *
+ * Jotter is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with Jotter.
+ * If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.openappslabs.jotter.ui.components
 
 import androidx.compose.foundation.background
@@ -45,23 +61,19 @@ fun DateFormatButton(
     onFormatSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 1. Setup State & Constants
     var showDialog by remember { mutableStateOf(false) }
 
-    // Colors & Sizes
     val activeContentColor = MaterialTheme.colorScheme.primary
     val containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
     val iconButtonSize = 48.dp
     val totalWidth = iconButtonSize * 2 // 96dp
 
-    // 2. Define Options
     val dateFormats = listOf(
         "dd MMM",       // 10 Dec
         "MMM dd",       // Dec 10
         "dd/MM",        // 10/12
     )
 
-    // Helper for live preview
     fun getExampleDate(format: String): String {
         return try {
             val formatter = SimpleDateFormat(format, Locale.getDefault())
@@ -71,7 +83,6 @@ fun DateFormatButton(
         }
     }
 
-    // 3. Button
     Box(
         modifier = modifier
             .width(totalWidth)
@@ -86,7 +97,6 @@ fun DateFormatButton(
             ),
         contentAlignment = Alignment.Center
     ) {
-        // Display Current Selection
         Text(
             text = getExampleDate(currentFormat),
             style = MaterialTheme.typography.labelLarge,
@@ -95,12 +105,9 @@ fun DateFormatButton(
             maxLines = 1
         )
 
-        // 4. Pop up Card
         if (showDialog) {
             val outerRadius = 25.dp
             val zeroPadding = PaddingValues(0.dp)
-
-            // CONSTANT: This ensures alignment across header and list
             val horizontalPadding = 24.dp
 
             Dialog(onDismissRequest = { showDialog = false }) {
@@ -113,13 +120,11 @@ fun DateFormatButton(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer
                     )
                 ) {
-                    // Header Section
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = horizontalPadding, end = horizontalPadding, top = 24.dp)
                     ) {
-                        // Title
                         Text(
                             text = "Date Format",
                             style = MaterialTheme.typography.headlineSmall,
@@ -128,7 +133,6 @@ fun DateFormatButton(
                             modifier = Modifier.align(Alignment.CenterStart)
                         )
 
-                        // Close Button
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
@@ -147,7 +151,6 @@ fun DateFormatButton(
                         }
                     }
 
-                    // Options List Section
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -166,7 +169,6 @@ fun DateFormatButton(
                         dateFormats.forEachIndexed { index, format ->
                             val isSelected = format == currentFormat
                             val exampleText = getExampleDate(format)
-
                             val shape = when {
                                 itemCount == 1 -> RoundedCornerShape(outerRadius)
                                 index == 0 -> RoundedCornerShape(

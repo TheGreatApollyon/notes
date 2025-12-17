@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2025 Open Apps Labs
+ *
+ * This file is part of Jotter
+ *
+ * Jotter is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ *
+ * Jotter is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with Jotter.
+ * If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.openappslabs.jotter.data.repository
 
 import androidx.datastore.core.DataStore
@@ -11,8 +27,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 import javax.inject.Inject
-
-// 1. The Model: Holds our settings data
 data class UserPreferences(
     val isGridView: Boolean = false,
     val isDarkMode: Boolean = false,
@@ -27,12 +41,10 @@ data class UserPreferences(
     val dateFormat: String = "dd MMM"
 )
 
-// 2. The Repository: Handles saving/loading
 class UserPreferencesRepository @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
 
-    // Define the keys for storing data
     private object Keys {
         val IS_GRID_VIEW = booleanPreferencesKey("is_grid_view")
         val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
@@ -46,8 +58,6 @@ class UserPreferencesRepository @Inject constructor(
         val IS_24_HOUR_FORMAT = booleanPreferencesKey("is_24_hour_format")
         val DATE_FORMAT = stringPreferencesKey("date_format")
     }
-
-    // Read Data (Exposed as a Flow)
     val userPreferencesFlow: Flow<UserPreferences> = dataStore.data
         .catch { exception ->
             if (exception is IOException) {

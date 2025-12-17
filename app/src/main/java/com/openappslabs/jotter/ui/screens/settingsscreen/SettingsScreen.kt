@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2025 Open Apps Labs
+ *
+ * This file is part of Jotter
+ *
+ * Jotter is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ *
+ * Jotter is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with Jotter.
+ * If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.openappslabs.jotter.ui.screens.settingsscreen
 
 import androidx.compose.animation.AnimatedVisibility
@@ -152,17 +168,15 @@ fun SettingsScreen(
             )
             Scaffold(
                 containerColor = Color.Transparent,
-                modifier = Modifier.fillMaxSize().padding(top = 0.dp) // Explicitly remove top padding for Scaffold
+                modifier = Modifier.fillMaxSize().padding(top = 0.dp)
             ) { innerPadding ->
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(bottom = innerPadding.calculateBottomPadding()), // Apply only bottom padding from innerPadding
+                        .padding(bottom = innerPadding.calculateBottomPadding()),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-
-                    // --- Group 1: Appearance ---
                     item {
                         SettingsGroup(title = "Appearance") {
                             SettingsItemSwitch(
@@ -215,7 +229,7 @@ fun SettingsScreen(
                             TinyGap()
 
                             SettingsItemTimeFormat(
-                                icon = Icons.Outlined.Schedule, // Use a clock icon
+                                icon = Icons.Outlined.Schedule,
                                 title = "Default Time Format",
                                 subtitle = if (uiState.is24HourFormat) "24 Hour Clock" else "12 Hour (AM/PM)",
                                 is24Hour = uiState.is24HourFormat,
@@ -236,7 +250,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    // --- Group 2: General & Navigation ---
                     item {
                         SettingsGroup(title = "General & Navigation") {
 
@@ -283,7 +296,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    // --- Group 3: Security ---
                     item {
                         SettingsGroup(title = "Security") {
                             val authSupport = remember(context) {
@@ -302,13 +314,11 @@ fun SettingsScreen(
                                         title = "Note Lock",
                                         subtitle = "Require authentication to open",
                                         checked = uiState.isBiometricEnabled,
-                                        authSupport = authSupport, // ✨ PASSED AuthSupport
+                                        authSupport = authSupport,
                                         onCheckedChange = { isEnabled ->
                                             if (isEnabled) {
-                                                // Enabling: Just update toggle
                                                 viewModel.updateBiometricEnabled(true)
                                             } else {
-                                                // Disabling: Require verification
                                                 val activity = context as? FragmentActivity
                                                 if (activity != null) {
                                                     BiometricAuthUtil.authenticate(
@@ -316,7 +326,6 @@ fun SettingsScreen(
                                                         title = "Confirm Identity",
                                                         subtitle = "Authenticate to disable Note Lock",
                                                         onSuccess = {
-                                                            // Instead of disabling immediately, show warning dialog
                                                             showDisableLockWarningDialog = true
                                                         },
                                                         onError = { }
@@ -339,7 +348,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    // --- Group 4: Data Management & Reset ---
                     item {
                         SettingsGroup(title = "Data Management") {
                             SettingsItemArrow(
@@ -360,7 +368,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    // --- Group 5: About ---
                     item {
                         SettingsGroup(title = "About") {
                             SettingsItemArrow(
@@ -408,8 +415,6 @@ fun SettingsScreen(
         }
     }
 }
-
-// --- Helper Composables ---
 
 @Composable
 fun TinyGap() {
@@ -520,10 +525,8 @@ fun SettingsItemNoteLock(
     onCheckedChange: (Boolean) -> Unit
 ) {
     val haptics = rememberJotterHaptics()
-
-    // Determine which icon to show
     val icon = if (checked) {
-        if (authSupport.hasFingerprint) Icons.Default.Fingerprint else Icons.Default.Lock // Fallback to Lock if no FP (e.g. only PIN)
+        if (authSupport.hasFingerprint) Icons.Default.Fingerprint else Icons.Default.Lock
     } else {
         Icons.Default.Lock
     }
@@ -533,7 +536,6 @@ fun SettingsItemNoteLock(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
     ) {
-        // Main Toggle Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -541,7 +543,7 @@ fun SettingsItemNoteLock(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = icon, // ✨ DYNAMIC ICON
+                imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
@@ -793,7 +795,6 @@ fun SettingsItemTimeFormat(
             }
         }
 
-        // Using the custom button component
         TimeFormatButton(
             is24Hour = is24Hour,
             onToggle = {
