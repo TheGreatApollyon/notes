@@ -41,19 +41,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrivacyPolicyScreen(
     onBackClick: () -> Unit
 ) {
+    val haptics = rememberJotterHaptics()
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -66,7 +69,10 @@ fun PrivacyPolicyScreen(
                 },
                 navigationIcon = {
                     Surface(
-                        onClick = onBackClick,
+                        onClick = {
+                            haptics.click()
+                            onBackClick()
+                        },
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                         modifier = Modifier
@@ -85,23 +91,20 @@ fun PrivacyPolicyScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = Color.Unspecified,
-                    navigationIconContentColor = Color.Unspecified,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = Color.Unspecified
                 )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Date Header
             Text(
                 text = "Last Updated: December 03, 2025",
                 style = MaterialTheme.typography.bodySmall,
@@ -135,14 +138,17 @@ fun PrivacyPolicyScreen(
                 title = "5. Contact Me",
                 content = "If you have any questions or concerns, you can reach out to me via GitHub."
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
 fun PolicySection(title: String, content: String) {
+    val bodyMedium = MaterialTheme.typography.bodyMedium
+    val rememberedLineHeight = remember(bodyMedium.lineHeight) {
+        bodyMedium.lineHeight * 1.5
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -162,9 +168,9 @@ fun PolicySection(title: String, content: String) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = content,
-                style = MaterialTheme.typography.bodyMedium,
+                style = bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5
+                lineHeight = rememberedLineHeight
             )
         }
     }
