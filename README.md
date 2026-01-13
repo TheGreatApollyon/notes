@@ -1,4 +1,8 @@
-<h1 align="center">📝 Jotter</h1>
+<h1 align="center">Jotter</h1>
+
+<p align="center">
+    <img src="screenshots/hero-image.png" alt="Hero Banner"/>
+</p>
 
 <p align="center">
   <img src="https://img.shields.io/github/v/release/OpenAppsLabs/Jotter?style=for-the-badge&logo=GitHub&color=%23000000"/>
@@ -8,7 +12,7 @@
   <img src="https://img.shields.io/github/license/OpenAppsLabs/Jotter?style=for-the-badge&logo=GitHub&color=%23000000"/>
 </p>
 
-Jotter is a modern, open-source Android note-taking application built with Jetpack Compose and Material Design 3. It focuses on speed, simplicity, and privacy, offering an offline-first experience with a beautiful, dynamic UI.
+Jotter is a modern, free notes app with a sleek, beautiful design. Unlike others loaded with ads and extras, it focuses purely on speed, simplicity, and privacy—offline-first with a dynamic UI that feels effortless. No distractions. No tracking. Just your notes, fast, secure, and only yours.
 
 ---
 
