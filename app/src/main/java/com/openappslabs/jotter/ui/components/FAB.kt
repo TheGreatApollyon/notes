@@ -16,6 +16,9 @@
 
 package com.openappslabs.jotter.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.FloatingActionButton
@@ -23,9 +26,13 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
+import kotlinx.coroutines.delay
 
 @Composable
 fun FAB(
@@ -33,21 +40,43 @@ fun FAB(
     modifier: Modifier = Modifier
 ) {
     val haptics = rememberJotterHaptics()
+    val scale = remember { Animatable(0f) }
+
+    val springSpec = remember {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    }
+
+    val fabElevation = FloatingActionButtonDefaults.elevation(
+        defaultElevation = 0.dp,
+        pressedElevation = 0.dp,
+        focusedElevation = 0.dp,
+        hoveredElevation = 0.dp
+    )
+
+    LaunchedEffect(Unit) {
+        delay(100)
+        scale.animateTo(
+            targetValue = 1f,
+            animationSpec = springSpec
+        )
+    }
 
     FloatingActionButton(
         onClick = {
             haptics.click()
             onClick()
         },
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            val s = scale.value
+            scaleX = s
+            scaleY = s
+        },
         containerColor = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        elevation = FloatingActionButtonDefaults.elevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp,
-            focusedElevation = 0.dp,
-            hoveredElevation = 0.dp
-        )
+        elevation = fabElevation
     ) {
         Icon(
             imageVector = Icons.Rounded.Add,
