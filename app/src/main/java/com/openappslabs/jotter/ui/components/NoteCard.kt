@@ -40,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,41 +48,50 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.openappslabs.jotter.data.model.Note
 import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteCard(
-    title: String,
-    content: String,
+    note: Note,
     date: String,
-    category: String,
-    isPinned: Boolean,
-    isLocked: Boolean,
     isGridView: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val haptics = rememberJotterHaptics()
 
-    val sizeModifier = if (isGridView) {
-        Modifier.aspectRatio(1f)
-    } else {
-        Modifier.fillMaxWidth().height(140.dp)
+    val cardModifier = remember(isGridView) {
+        if (isGridView) {
+            Modifier.aspectRatio(1f)
+        } else {
+            Modifier.fillMaxWidth().height(140.dp)
+        }
     }
 
-    val displayContent = if (isLocked && !isGridView) "Locked Note" else content
-    val contentColor = if (isLocked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.onSurfaceVariant
-    val isCategoryBlank = category.isBlank()
-    val categoryText = if (isCategoryBlank) "UNCATEGORIZED" else category.uppercase()
-    val chipContainerColor = if (isCategoryBlank) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.surfaceContainerHigh
-    val chipContentColor = if (isCategoryBlank) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    val displayContent = remember(note.content, note.isLocked, isGridView) {
+        if (note.isLocked && !isGridView) "Locked Note" else note.content
+    }
+
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val contentColor = remember(note.isLocked, onSurfaceVariant) {
+        if (note.isLocked) onSurfaceVariant.copy(alpha = 0.5f) else onSurfaceVariant
+    }
+
+    val isCategoryBlank = note.category.isBlank()
+    val categoryText = remember(note.category, isCategoryBlank) {
+        if (isCategoryBlank) "UNCATEGORIZED" else note.category.uppercase()
+    }
+
+    val chipContainerColor = if (isCategoryBlank) {
+        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    }
 
     Card(
-        modifier = modifier.then(sizeModifier),
+        modifier = modifier.then(cardModifier),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -103,7 +113,7 @@ fun NoteCard(
                     verticalAlignment = Alignment.Top
                 ) {
                     Text(
-                        text = if (title.isEmpty()) "Untitled" else title,
+                        text = if (note.title.isEmpty()) "Untitled" else note.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -111,7 +121,7 @@ fun NoteCard(
                         modifier = Modifier.weight(1f)
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (isPinned) {
+                        if (note.isPinned) {
                             Icon(
                                 imageVector = Icons.Default.PushPin,
                                 contentDescription = "Pinned",
@@ -119,10 +129,10 @@ fun NoteCard(
                                 modifier = Modifier.size(16.dp)
                             )
                         }
-                        if (isPinned && (isLocked && !isGridView)) {
+                        if (note.isPinned && (note.isLocked && !isGridView)) {
                             Spacer(modifier = Modifier.width(12.dp))
                         }
-                        if (isLocked && !isGridView) {
+                        if (note.isLocked && !isGridView) {
                             Icon(
                                 imageVector = Icons.Default.Lock,
                                 contentDescription = "Locked",
@@ -135,7 +145,7 @@ fun NoteCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (isLocked && isGridView) {
+                if (note.isLocked && isGridView) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -182,7 +192,7 @@ fun NoteCard(
                         text = categoryText,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = chipContentColor,
+                        color = if (isCategoryBlank) contentColor.copy(alpha = 0.7f) else onSurfaceVariant,
                         fontSize = 10.sp
                     )
                 }
