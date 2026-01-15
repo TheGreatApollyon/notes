@@ -16,7 +16,12 @@
 
 package com.openappslabs.jotter.data.model
 
+import androidx.compose.runtime.Immutable
+import kotlinx.serialization.Serializable
+
+@Immutable
+@Serializable
 data class BackupData(
-    val notes: List<Note>,
-    val categories: List<Category>
+    val notes: List<Note> = emptyList(),
+    val categories: List<Category> = emptyList()
 )
