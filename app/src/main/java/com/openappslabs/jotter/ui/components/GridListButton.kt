@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -41,39 +40,49 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
+
+private val IconButtonSize = 48.dp
 
 @Composable
 fun GridListButton(
-    isGridView: Boolean, // Renamed parameter to match usage
+    isGridView: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptics = rememberJotterHaptics()
     val activeContentColor = MaterialTheme.colorScheme.primary
     val inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     val activeContainerColor = MaterialTheme.colorScheme.secondaryContainer
-    val iconButtonSize = 48.dp
-    val offsetX by animateDpAsState(
-        targetValue = if (!isGridView) 0.dp else iconButtonSize,
-        animationSpec = spring(
+
+    val springSpec = remember {
+        spring<Dp>(
             dampingRatio = 0.8f,
             stiffness = 300f
-        ),
+        )
+    }
+
+    val offsetX by animateDpAsState(
+        targetValue = if (!isGridView) 0.dp else IconButtonSize,
+        animationSpec = springSpec,
         label = "SlidingIndicatorOffset"
     )
 
     Box(
         modifier = modifier
-            .width(iconButtonSize * 2)
-            .height(iconButtonSize)
+            .width(IconButtonSize * 2)
+            .height(IconButtonSize)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
     ) {
         Box(
             modifier = Modifier
-                .offset(x = offsetX)
-                .size(iconButtonSize)
+                .graphicsLayer { translationX = offsetX.toPx() }
+                .size(IconButtonSize)
                 .clip(CircleShape)
                 .background(activeContainerColor)
         )
@@ -88,7 +97,12 @@ fun GridListButton(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         role = Role.Button,
-                        onClick = { if (isGridView) onToggle() } // Click to switch to List
+                        onClick = { 
+                            if (isGridView) {
+                                haptics.tick()
+                                onToggle() 
+                            }
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -108,7 +122,12 @@ fun GridListButton(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         role = Role.Button,
-                        onClick = { if (!isGridView) onToggle() } // Click to switch to Grid
+                        onClick = { 
+                            if (!isGridView) {
+                                haptics.tick()
+                                onToggle() 
+                            }
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {

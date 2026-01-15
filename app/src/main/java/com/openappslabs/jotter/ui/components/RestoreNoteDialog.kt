@@ -30,94 +30,95 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
+
+private val OuterRadius = 25.dp
+private val ZeroPadding = PaddingValues(0.dp)
 
 @Composable
 fun RestoreNoteDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    val outerRadius = 25.dp
+    val haptics = rememberJotterHaptics()
 
-    val topButtonShape = RoundedCornerShape(
-        topStart    = outerRadius,
-        topEnd      = outerRadius,
-        bottomStart = 4.dp,
-        bottomEnd   = 4.dp
-    )
-    val bottomButtonShape = RoundedCornerShape(
-        topStart    = 4.dp,
-        topEnd      = 4.dp,
-        bottomStart = outerRadius,
-        bottomEnd   = outerRadius
-    )
-
-    val zeroPadding = PaddingValues(0.dp)
+    val topButtonShape = remember {
+        RoundedCornerShape(
+            topStart = OuterRadius,
+            topEnd = OuterRadius,
+            bottomStart = 4.dp,
+            bottomEnd = 4.dp
+        )
+    }
+    val bottomButtonShape = remember {
+        RoundedCornerShape(
+            topStart = 4.dp,
+            topEnd = 4.dp,
+            bottomStart = OuterRadius,
+            bottomEnd = OuterRadius
+        )
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(
-                topStart    = 16.dp,
-                topEnd      = 16.dp,
-                bottomStart = 16.dp,
-                bottomEnd   = 16.dp
-            ),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
             )
         ) {
             Column(
                 modifier = Modifier
-                    .padding(start = 24.dp, end = 24.dp, top = 24.dp),
+                    .fillMaxWidth()
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text      = "Restore Note?",
-                    style     = MaterialTheme.typography.headlineSmall,
-                    fontWeight= FontWeight.Bold,
-                    color     = MaterialTheme.colorScheme.onSurface,
+                    text = "Restore Note?",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text      = "Are you sure you want to restore this note to your main list?",
-                    style     = MaterialTheme.typography.bodyMedium,
+                    text = "Are you sure you want to restore this note to your main list?",
+                    style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
-                    color     = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+                Spacer(modifier = Modifier.height(24.dp))
+
                 Button(
-                    onClick        = onConfirm,
-                    modifier       = Modifier
+                    onClick = {
+                        haptics.success()
+                        onConfirm()
+                    },
+                    modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape          = topButtonShape,
-                    colors         = ButtonDefaults.buttonColors(
+                    shape = topButtonShape,
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor   = MaterialTheme.colorScheme.onPrimaryContainer
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     ),
-                    elevation      = null,
-                    contentPadding = zeroPadding
+                    elevation = null,
+                    contentPadding = ZeroPadding
                 ) {
                     Text(
-                        text       = "Restore",
+                        text = "Restore",
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -125,20 +126,23 @@ fun RestoreNoteDialog(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Button(
-                    onClick        = onDismiss,
-                    modifier       = Modifier
+                    onClick = {
+                        haptics.click()
+                        onDismiss()
+                    },
+                    modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape          = bottomButtonShape,
-                    colors         = ButtonDefaults.buttonColors(
+                    shape = bottomButtonShape,
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        contentColor   = MaterialTheme.colorScheme.onSurface
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    elevation      = null,
-                    contentPadding = zeroPadding
+                    elevation = null,
+                    contentPadding = ZeroPadding
                 ) {
                     Text(
-                        text       = "Cancel",
+                        text = "Cancel",
                         fontWeight = FontWeight.SemiBold
                     )
                 }

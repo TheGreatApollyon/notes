@@ -51,9 +51,21 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private val DateFormats = listOf(
+    "dd MMM",       // 10 Dec
+    "MMM dd",       // Dec 10
+    "dd/MM",        // 10/12
+)
+private val IconButtonSize = 48.dp
+private val TotalWidth = IconButtonSize * 2
+private val OuterRadius = 25.dp
+private val ZeroPadding = PaddingValues(0.dp)
+private val HorizontalPadding = 24.dp
 
 @Composable
 fun DateFormatButton(
@@ -62,54 +74,71 @@ fun DateFormatButton(
     modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    val haptics = rememberJotterHaptics()
+    val locale = Locale.getDefault()
 
-    val activeContentColor = MaterialTheme.colorScheme.primary
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-    val iconButtonSize = 48.dp
-    val totalWidth = iconButtonSize * 2 // 96dp
+    val exampleDates = remember(locale) {
+        DateFormats.map { format ->
+            try {
+                SimpleDateFormat(format, locale).format(Date())
+            } catch (e: Exception) {
+                format
+            }
+        }
+    }
 
-    val dateFormats = listOf(
-        "dd MMM",       // 10 Dec
-        "MMM dd",       // Dec 10
-        "dd/MM",        // 10/12
-    )
-
-    fun getExampleDate(format: String): String {
-        return try {
-            val formatter = SimpleDateFormat(format, Locale.getDefault())
-            formatter.format(Date())
+    val currentExampleDate = remember(currentFormat, locale) {
+        try {
+            SimpleDateFormat(currentFormat, locale).format(Date())
         } catch (e: Exception) {
-            format
+            currentFormat
+        }
+    }
+
+    val buttonShapes = remember {
+        val count = DateFormats.size
+        DateFormats.indices.map { index ->
+            when {
+                count == 1 -> RoundedCornerShape(OuterRadius)
+                index == 0 -> RoundedCornerShape(
+                    topStart = OuterRadius, topEnd = OuterRadius,
+                    bottomStart = 4.dp, bottomEnd = 4.dp
+                )
+                index == count - 1 -> RoundedCornerShape(
+                    topStart = 4.dp, topEnd = 4.dp,
+                    bottomStart = OuterRadius, bottomEnd = OuterRadius
+                )
+                else -> RoundedCornerShape(4.dp)
+            }
         }
     }
 
     Box(
         modifier = modifier
-            .width(totalWidth)
-            .height(iconButtonSize)
+            .width(TotalWidth)
+            .height(IconButtonSize)
             .clip(CircleShape)
-            .background(containerColor)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 role = Role.Button,
-                onClick = { showDialog = true }
+                onClick = { 
+                    haptics.click()
+                    showDialog = true 
+                }
             ),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = getExampleDate(currentFormat),
+            text = currentExampleDate,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = activeContentColor,
+            color = MaterialTheme.colorScheme.primary,
             maxLines = 1
         )
 
         if (showDialog) {
-            val outerRadius = 25.dp
-            val zeroPadding = PaddingValues(0.dp)
-            val horizontalPadding = 24.dp
-
             Dialog(onDismissRequest = { showDialog = false }) {
                 Card(
                     modifier = Modifier
@@ -123,7 +152,7 @@ fun DateFormatButton(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = horizontalPadding, end = horizontalPadding, top = 24.dp)
+                            .padding(start = HorizontalPadding, end = HorizontalPadding, top = 24.dp)
                     ) {
                         Text(
                             text = "Date Format",
@@ -139,7 +168,10 @@ fun DateFormatButton(
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                                .clickable { showDialog = false },
+                                .clickable { 
+                                    haptics.click()
+                                    showDialog = false 
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -155,42 +187,26 @@ fun DateFormatButton(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(
-                                start = horizontalPadding,
-                                end = horizontalPadding,
+                                start = HorizontalPadding,
+                                end = HorizontalPadding,
                                 bottom = 24.dp,
-                                top = 0.dp
+                                top = 24.dp
                             ),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        val itemCount = dateFormats.size
-
-                        dateFormats.forEachIndexed { index, format ->
+                        DateFormats.forEachIndexed { index, format ->
                             val isSelected = format == currentFormat
-                            val exampleText = getExampleDate(format)
-                            val shape = when {
-                                itemCount == 1 -> RoundedCornerShape(outerRadius)
-                                index == 0 -> RoundedCornerShape(
-                                    topStart = outerRadius, topEnd = outerRadius,
-                                    bottomStart = 4.dp, bottomEnd = 4.dp
-                                )
-                                index == itemCount - 1 -> RoundedCornerShape(
-                                    topStart = 4.dp, topEnd = 4.dp,
-                                    bottomStart = outerRadius, bottomEnd = outerRadius
-                                )
-                                else -> RoundedCornerShape(4.dp)
-                            }
 
                             Button(
                                 onClick = {
+                                    haptics.tick()
                                     onFormatSelected(format)
                                     showDialog = false
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(50.dp),
-                                shape = shape,
+                                shape = buttonShapes[index],
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = if (isSelected)
                                         MaterialTheme.colorScheme.secondaryContainer
@@ -202,15 +218,15 @@ fun DateFormatButton(
                                         MaterialTheme.colorScheme.onSurface
                                 ),
                                 elevation = null,
-                                contentPadding = zeroPadding
+                                contentPadding = ZeroPadding
                             ) {
                                 Text(
-                                    text = exampleText,
+                                    text = exampleDates[index],
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
                                 )
                             }
 
-                            if (index < itemCount - 1) {
+                            if (index < DateFormats.size - 1) {
                                 Spacer(modifier = Modifier.height(4.dp))
                             }
                         }
