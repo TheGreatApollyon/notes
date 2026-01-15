@@ -19,10 +19,8 @@ package com.openappslabs.jotter.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import com.openappslabs.jotter.ui.screens.aboutscreen.AboutScreen
 import com.openappslabs.jotter.ui.screens.addcategoryscreen.AddCategoryScreen
 import com.openappslabs.jotter.ui.screens.archivescreen.ArchiveScreen
@@ -40,81 +38,77 @@ fun AppNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = AppRoutes.HOME,
+        startDestination = AppRoutes.Home,
         modifier = modifier
     ) {
-        composable(AppRoutes.HOME) {
+        composable<AppRoutes.Home> {
             HomeScreen(
                 onNoteClick = { noteId ->
-                    navController.navigate("${AppRoutes.NOTE_DETAIL}/$noteId")
+                    navController.navigate(AppRoutes.NoteDetail(noteId = noteId))
                 },
-                onAddNoteClick = {
-                    navController.navigate("${AppRoutes.NOTE_DETAIL}/-1")
+                onAddNoteClick = { category ->
+                    navController.navigate(AppRoutes.NoteDetail(category = category))
                 },
-                onAddCategoryClick = { navController.navigate(AppRoutes.ADD_CATEGORY) },
-                onSettingsClick = { navController.navigate(AppRoutes.SETTINGS) }
+                onAddCategoryClick = { navController.navigate(AppRoutes.AddCategory) },
+                onSettingsClick = { navController.navigate(AppRoutes.Settings) }
             )
         }
 
-        composable(AppRoutes.ADD_CATEGORY) {
-            AddCategoryScreen( onBackClick = { navController.popBackStack() } )
+        composable<AppRoutes.AddCategory> {
+            AddCategoryScreen(onBackClick = navController::popBackStack)
         }
 
-        composable(AppRoutes.SETTINGS) {
+        composable<AppRoutes.Settings> {
             SettingsScreen(
-                onBackClick = { navController.popBackStack() },
-                onManageTagsClick = { navController.navigate(AppRoutes.ADD_CATEGORY) },
-                onArchiveClick = { navController.navigate(AppRoutes.ARCHIVE) },
-                onTrashClick = { navController.navigate(AppRoutes.TRASH) },
-                onBackupRestoreClick = { navController.navigate(AppRoutes.BACKUP_RESTORE) },
-                onPrivacyPolicyClick = { navController.navigate(AppRoutes.PRIVACY_POLICY) },
-                onAboutClick = { navController.navigate(AppRoutes.ABOUT) }
+                onBackClick = navController::popBackStack,
+                onManageTagsClick = { navController.navigate(AppRoutes.AddCategory) },
+                onArchiveClick = { navController.navigate(AppRoutes.Archive) },
+                onTrashClick = { navController.navigate(AppRoutes.Trash) },
+                onBackupRestoreClick = { navController.navigate(AppRoutes.BackupRestore) },
+                onPrivacyPolicyClick = { navController.navigate(AppRoutes.PrivacyPolicy) },
+                onAboutClick = { navController.navigate(AppRoutes.About) }
             )
         }
 
-        composable(AppRoutes.ARCHIVE) {
+        composable<AppRoutes.Archive> {
             ArchiveScreen(
-                onBackClick = { navController.popBackStack() },
-                onNoteClick = { noteId -> navController.navigate("${AppRoutes.NOTE_DETAIL}/$noteId") }
-            )
-        }
-
-        composable(AppRoutes.TRASH) {
-            TrashScreen(
-                onBackClick = { navController.popBackStack() },
-                onNoteClick = { noteId -> navController.navigate("${AppRoutes.NOTE_DETAIL}/$noteId") }
-            )
-        }
-
-        composable(AppRoutes.BACKUP_RESTORE) {
-            BackupRestoreScreen(onBackClick = { navController.popBackStack() })
-        }
-
-        composable(AppRoutes.PRIVACY_POLICY) {
-            PrivacyPolicyScreen(onBackClick = { navController.popBackStack() })
-        }
-
-        composable(AppRoutes.ABOUT) {
-            AboutScreen(onBackClick = { navController.popBackStack() })
-        }
-
-        composable(
-            route = AppRoutes.NOTE_DETAIL_ROUTE_WITH_ARGS,
-            arguments = listOf(
-                navArgument(AppRoutes.NOTE_ID_KEY) {
-                    type = NavType.IntType
-                    defaultValue = -1
+                onBackClick = navController::popBackStack,
+                onNoteClick = { noteId ->
+                    navController.navigate(AppRoutes.NoteDetail(noteId = noteId))
                 }
             )
-        ) {
+        }
+
+        composable<AppRoutes.Trash> {
+            TrashScreen(
+                onBackClick = navController::popBackStack,
+                onNoteClick = { noteId ->
+                    navController.navigate(AppRoutes.NoteDetail(noteId = noteId))
+                }
+            )
+        }
+
+        composable<AppRoutes.BackupRestore> {
+            BackupRestoreScreen(onBackClick = navController::popBackStack)
+        }
+
+        composable<AppRoutes.PrivacyPolicy> {
+            PrivacyPolicyScreen(onBackClick = navController::popBackStack)
+        }
+
+        composable<AppRoutes.About> {
+            AboutScreen(onBackClick = navController::popBackStack)
+        }
+
+        composable<AppRoutes.NoteDetail> {
             NoteDetailScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = navController::popBackStack,
                 onManageCategoryClick = {
-                    navController.navigate(AppRoutes.ADD_CATEGORY)
+                    navController.navigate(AppRoutes.AddCategory)
                 },
-                onNavigateToArchive = { navController.navigate(AppRoutes.ARCHIVE) },
-                onNavigateToTrash = { navController.navigate(AppRoutes.TRASH) },
-                onNavigateToHome = { navController.navigate(AppRoutes.HOME) }
+                onNavigateToArchive = { navController.navigate(AppRoutes.Archive) },
+                onNavigateToTrash = { navController.navigate(AppRoutes.Trash) },
+                onNavigateToHome = { navController.navigate(AppRoutes.Home) }
             )
         }
     }

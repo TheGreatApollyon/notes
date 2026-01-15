@@ -16,21 +16,37 @@
 
 package com.openappslabs.jotter.navigation
 
-object AppRoutes {
-    const val HOME = "home"
-    const val SETTINGS = "settings"
+import kotlinx.serialization.Serializable
 
-    const val ARCHIVE = "archive"
-    const val TRASH = "trash"
+sealed interface AppRoutes {
 
-    const val ADD_CATEGORY = "add_category"
-    const val BACKUP_RESTORE = "backup_restore"
-    const val PRIVACY_POLICY = "privacy_policy"
-    const val ABOUT = "about"
+    @Serializable
+    data object Home : AppRoutes
 
-    const val NOTE_ID_KEY = "noteId"
+    @Serializable
+    data object Settings : AppRoutes
 
-    const val NOTE_DETAIL = "note_detail"
+    @Serializable
+    data object Archive : AppRoutes
 
-    const val NOTE_DETAIL_ROUTE_WITH_ARGS = "$NOTE_DETAIL/{$NOTE_ID_KEY}"
+    @Serializable
+    data object Trash : AppRoutes
+
+    @Serializable
+    data object AddCategory : AppRoutes
+
+    @Serializable
+    data object BackupRestore : AppRoutes
+
+    @Serializable
+    data object PrivacyPolicy : AppRoutes
+
+    @Serializable
+    data object About : AppRoutes
+
+    @Serializable
+    data class NoteDetail(
+        val noteId: Int = -1,
+        val category: String? = null
+    ) : AppRoutes
 }
