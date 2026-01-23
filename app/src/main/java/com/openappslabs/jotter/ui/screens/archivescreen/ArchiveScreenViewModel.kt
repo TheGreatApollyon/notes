@@ -16,6 +16,7 @@
 
 package com.openappslabs.jotter.ui.screens.archivescreen
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openappslabs.jotter.data.model.Note
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -51,12 +53,15 @@ class ArchiveScreenViewModel @Inject constructor(
             showRestoreAllDialog = showRestore,
             showBulkActionDialog = showBulk
         )
-    }.stateIn(
+    }
+    .distinctUntilChanged()
+    .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = UiState()
     )
 
+    @Immutable
     data class UiState(
         val archivedNotes: List<Note> = emptyList(),
         val isGridView: Boolean = true,

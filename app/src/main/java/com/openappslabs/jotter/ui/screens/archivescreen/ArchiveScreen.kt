@@ -42,18 +42,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.openappslabs.jotter.ui.components.NoteCard
 import com.openappslabs.jotter.ui.components.RestoreAllDialog
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -65,10 +65,12 @@ fun ArchiveScreen(
     onNoteClick: (Int) -> Unit = {},
     viewModel: ArchiveScreenViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val haptics = rememberJotterHaptics()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val archivedNotes = uiState.archivedNotes
     val showDialog = uiState.showRestoreAllDialog
-    val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
+    val locale = Locale.getDefault()
+    val dateFormatter = remember(locale) { SimpleDateFormat("MMM dd", locale) }
 
     Scaffold(
         topBar = {
@@ -82,7 +84,10 @@ fun ArchiveScreen(
                 },
                 navigationIcon = {
                     Surface(
-                        onClick = onBackClick,
+                        onClick = {
+                            haptics.click()
+                            onBackClick()
+                        },
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                         modifier = Modifier.padding(start = 12.dp).size(48.dp)
@@ -100,10 +105,12 @@ fun ArchiveScreen(
                 actions = {
                     if (archivedNotes.isNotEmpty()) {
                         Surface(
-                            onClick = { viewModel.onRestoreAllClicked() },
+                            onClick = {
+                                haptics.click()
+                                viewModel.onRestoreAllClicked()
+                            },
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceContainer,
-                            enabled = true,
                             modifier = Modifier.padding(end = 12.dp).size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -119,10 +126,7 @@ fun ArchiveScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = Color.Unspecified,
-                    navigationIconContentColor = Color.Unspecified,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = Color.Unspecified
                 )
             )
         }
@@ -148,18 +152,19 @@ fun ArchiveScreen(
                     verticalItemSpacing = 12.dp
                 ) {
                     items(archivedNotes, key = { it.id }) { note ->
-                        val dateStr = remember(note.updatedTime) {
+                        // PERFORMANCE: Only re-format date when note is updated
+                        val dateStr = remember(note.updatedTime, locale) {
                             dateFormatter.format(Date(note.updatedTime))
                         }
                         NoteCard(
-                            title = note.title,
-                            content = note.content,
+                            note = note,
                             date = dateStr,
-                            category = note.category,
-                            isPinned = note.isPinned,
-                            isLocked = note.isLocked,
                             isGridView = uiState.isGridView,
-                            onClick = { viewModel.onNoteClicked(note.id); onNoteClick(note.id) }
+                            onClick = { 
+                                haptics.tick()
+                                viewModel.onNoteClicked(note.id)
+                                onNoteClick(note.id) 
+                            }
                         )
                     }
                 }
@@ -169,8 +174,14 @@ fun ArchiveScreen(
         if (showDialog) {
             RestoreAllDialog(
                 noteCount = archivedNotes.size,
-                onDismiss = { viewModel.dismissRestoreAllDialog() },
-                onConfirm = { viewModel.confirmRestoreAll() }
+                onDismiss = {
+                    haptics.click()
+                    viewModel.dismissRestoreAllDialog()
+                },
+                onConfirm = {
+                    haptics.success()
+                    viewModel.confirmRestoreAll()
+                }
             )
         }
     }

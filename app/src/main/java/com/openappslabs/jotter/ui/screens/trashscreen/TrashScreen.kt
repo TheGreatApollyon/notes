@@ -17,6 +17,7 @@
 package com.openappslabs.jotter.ui.screens.trashscreen
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -43,24 +44,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.openappslabs.jotter.ui.components.EmptyTrashDialog
 import com.openappslabs.jotter.ui.components.NoteCard
-import com.openappslabs.jotter.ui.components.RestoreAllDialog // Assuming this component exists
+import com.openappslabs.jotter.ui.components.RestoreAllDialog
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.compose.foundation.layout.Box as ComposeBox
-import androidx.compose.foundation.layout.Column as ComposeColumn
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,11 +68,14 @@ fun TrashScreen(
     onNoteClick: (Int) -> Unit = {},
     viewModel: TrashScreenViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val haptics = rememberJotterHaptics()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val trashedNotes = uiState.trashedNotes
     val showEmptyTrashDialog = uiState.showEmptyTrashDialog
     val showRestoreDialog = uiState.showRestoreAllDialog
-    val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
+    
+    val locale = Locale.getDefault()
+    val dateFormatter = remember(locale) { SimpleDateFormat("MMM dd", locale) }
 
     Scaffold(
         topBar = {
@@ -87,12 +89,15 @@ fun TrashScreen(
                 },
                 navigationIcon = {
                     Surface(
-                        onClick = onBackClick,
+                        onClick = {
+                            haptics.click()
+                            onBackClick()
+                        },
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                         modifier = Modifier.padding(start = 12.dp).size(48.dp)
                     ) {
-                        ComposeBox(contentAlignment = Alignment.Center) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = "Back",
@@ -105,13 +110,15 @@ fun TrashScreen(
                 actions = {
                     if (trashedNotes.isNotEmpty()) {
                         Surface(
-                            onClick = { viewModel.onRestoreAllClicked() },
+                            onClick = {
+                                haptics.click()
+                                viewModel.onRestoreAllClicked()
+                            },
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceContainer,
-                            enabled = true,
                             modifier = Modifier.padding(end = 12.dp).size(48.dp)
                         ) {
-                            ComposeBox(contentAlignment = Alignment.Center) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Restore,
                                     contentDescription = "Restore All",
@@ -124,17 +131,17 @@ fun TrashScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = Color.Unspecified,
-                    navigationIconContentColor = Color.Unspecified,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = Color.Unspecified
                 )
             )
         },
         floatingActionButton = {
             if (trashedNotes.isNotEmpty()) {
                 ExtendedFloatingActionButton(
-                    onClick = { viewModel.onEmptyTrashClicked() },
+                    onClick = {
+                        haptics.click()
+                        viewModel.onEmptyTrashClicked()
+                    },
                     icon = { Icon(Icons.Default.DeleteForever, contentDescription = null) },
                     text = { Text("Empty Trash") },
                     containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -142,7 +149,8 @@ fun TrashScreen(
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
                 )
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -150,7 +158,7 @@ fun TrashScreen(
                 .padding(innerPadding)
         ) {
             if (trashedNotes.isEmpty()) {
-                ComposeBox(
+                Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
@@ -165,19 +173,16 @@ fun TrashScreen(
                     verticalItemSpacing = 12.dp
                 ) {
                     items(trashedNotes, key = { it.id }) { note ->
-                        val dateStr = remember(note.updatedTime) {
+                        val dateStr = remember(note.updatedTime, locale) {
                             dateFormatter.format(Date(note.updatedTime))
                         }
 
                         NoteCard(
-                            title = note.title,
-                            content = note.content,
+                            note = note,
                             date = dateStr,
-                            category = note.category,
-                            isPinned = note.isPinned,
-                            isLocked = note.isLocked,
                             isGridView = uiState.isGridView,
                             onClick = {
+                                haptics.tick()
                                 viewModel.onNoteClicked(note.id)
                                 onNoteClick(note.id)
                             }
@@ -189,16 +194,28 @@ fun TrashScreen(
 
         if (showEmptyTrashDialog) {
             EmptyTrashDialog(
-                onDismiss = { viewModel.dismissEmptyTrashDialog() },
-                onConfirm = { viewModel.confirmEmptyTrash() }
+                onDismiss = {
+                    haptics.click()
+                    viewModel.dismissEmptyTrashDialog()
+                },
+                onConfirm = {
+                    haptics.heavy()
+                    viewModel.confirmEmptyTrash()
+                }
             )
         }
 
         if (showRestoreDialog) {
             RestoreAllDialog(
                 noteCount = trashedNotes.size,
-                onDismiss = { viewModel.dismissRestoreAllDialog() },
-                onConfirm = { viewModel.confirmRestoreAll() }
+                onDismiss = {
+                    haptics.click()
+                    viewModel.dismissRestoreAllDialog()
+                },
+                onConfirm = {
+                    haptics.success()
+                    viewModel.confirmRestoreAll()
+                }
             )
         }
     }
@@ -206,7 +223,7 @@ fun TrashScreen(
 
 @Composable
 private fun EmptyTrashContent() {
-    ComposeColumn(
+    Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(32.dp)
     ) {
