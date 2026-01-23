@@ -19,10 +19,10 @@ package com.openappslabs.jotter.ui.screens.addcategoryscreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openappslabs.jotter.data.repository.CategoryRepository
-import com.openappslabs.jotter.data.repository.NotesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -30,14 +30,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddCategoryScreenViewModel @Inject constructor(
-    private val categoryRepository: CategoryRepository,
-    private val notesRepository: NotesRepository
+    private val categoryRepository: CategoryRepository
 ) : ViewModel() {
-
     val categories: StateFlow<List<String>> = categoryRepository.getAllCategories()
-        .map { categoryList ->
-            categoryList.map { it.name }
-        }
+        .map { categoryList -> categoryList.map { it.name } }
+        .distinctUntilChanged()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -53,9 +50,18 @@ class AddCategoryScreenViewModel @Inject constructor(
         }
     }
 
+    fun updateCategory(oldName: String, newName: String) {
+        val trimmedNew = newName.trim()
+        if (trimmedNew.isNotBlank() && oldName != trimmedNew) {
+            viewModelScope.launch {
+                categoryRepository.renameCategory(oldName, trimmedNew)
+            }
+        }
+    }
+
     fun removeCategory(category: String) {
         viewModelScope.launch {
-            categoryRepository.clearCategoryReferences(category, notesRepository.getAllNotes())
+            categoryRepository.clearCategoryReferences(category)
             categoryRepository.deleteCategoryByName(category)
         }
     }

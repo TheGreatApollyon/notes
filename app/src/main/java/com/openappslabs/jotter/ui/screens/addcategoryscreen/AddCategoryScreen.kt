@@ -16,7 +16,9 @@
 
 package com.openappslabs.jotter.ui.screens.addcategoryscreen
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -24,6 +26,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -33,21 +36,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -58,23 +61,32 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.openappslabs.jotter.ui.components.DeleteCategoryDialog
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,58 +94,124 @@ fun AddCategoryScreen(
     onBackClick: () -> Unit,
     viewModel: AddCategoryScreenViewModel = hiltViewModel()
 ) {
-    var newCategory by remember { mutableStateOf("") }
+    val haptics = rememberJotterHaptics()
+    var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    var editingCategoryName by remember { mutableStateOf<String?>(null) }
+    var categoryToDelete by remember { mutableStateOf<String?>(null) }
+    var lastToastTime by remember { mutableLongStateOf(0L) }
+
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
 
-    LaunchedEffect(isImeVisible) {
-        if (!isImeVisible) {
+    val isActionEnabled = if (editingCategoryName != null) {
+        textFieldValue.text.trim() != editingCategoryName && textFieldValue.text.isNotBlank()
+    } else {
+        textFieldValue.text.isNotBlank()
+    }
+
+    val resetInput = remember {
+        {
             focusManager.clearFocus()
+            textFieldValue = TextFieldValue(text = "", selection = TextRange.Zero)
+            editingCategoryName = null
         }
     }
 
-    BackHandler(enabled = isImeVisible) {
-        focusManager.clearFocus()
+    val performAction = remember(isActionEnabled, textFieldValue, categories, editingCategoryName, lastToastTime) {
+        {
+            if (isActionEnabled) {
+                val trimmed = textFieldValue.text.trim()
+                if (trimmed.isNotBlank()) {
+                    val isDuplicate = categories.any { it.equals(trimmed, ignoreCase = true) }
+                    if (isDuplicate && trimmed != editingCategoryName) {
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastToastTime > 2000) {
+                            Toast.makeText(context, "Category \"$trimmed\" already exists", Toast.LENGTH_SHORT).show()
+                            lastToastTime = currentTime
+                        }
+                    } else {
+                        haptics.success()
+                        if (editingCategoryName != null) {
+                            viewModel.updateCategory(editingCategoryName!!, trimmed)
+                        } else {
+                            viewModel.addCategory(trimmed)
+                        }
+                        resetInput()
+                    }
+                }
+            }
+        }
     }
 
-    val categories by viewModel.categories.collectAsStateWithLifecycle()
-    val maxCharLimit = 15
     val transparentColors = TextFieldDefaults.colors(
-        focusedContainerColor    = Color.Transparent,
-        unfocusedContainerColor  = Color.Transparent,
-        focusedIndicatorColor    = Color.Transparent,
-        unfocusedIndicatorColor  = Color.Transparent,
-        cursorColor              = MaterialTheme.colorScheme.onSurface,
-        focusedPlaceholderColor  = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-        unfocusedPlaceholderColor= MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent,
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
+        cursorColor = MaterialTheme.colorScheme.onSurface,
+        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
     )
+
+    LaunchedEffect(isImeVisible) {
+        if (!isImeVisible) {
+            if (textFieldValue.text.isBlank()) editingCategoryName = null
+        }
+    }
+
+    // UX FIX: Handle keyboard close first before reset/back
+    BackHandler(enabled = isImeVisible || editingCategoryName != null || textFieldValue.text.isNotEmpty()) {
+        if (isImeVisible) {
+            focusManager.clearFocus()
+        } else {
+            resetInput()
+        }
+    }
+
+    categoryToDelete?.let { categoryName ->
+        DeleteCategoryDialog(
+            categoryName = categoryName,
+            onDismiss = { categoryToDelete = null },
+            onConfirm = {
+                haptics.heavy()
+                viewModel.removeCategory(categoryName)
+                categoryToDelete = null
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text       = "Manage Tags",
-                        style      = MaterialTheme.typography.headlineMedium,
+                        text = "Manage Categories",
+                        style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Medium
                     )
                 },
                 navigationIcon = {
                     Surface(
-                        onClick   = onBackClick,
-                        shape     = CircleShape,
-                        color     = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier  = Modifier
+                        onClick = {
+                            haptics.click()
+                            onBackClick()
+                        },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier
                             .padding(start = 12.dp)
                             .size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector    = Icons.AutoMirrored.Outlined.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = "Back",
-                                tint            = MaterialTheme.colorScheme.onSurface,
-                                modifier        = Modifier.size(24.dp)
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
@@ -143,27 +221,24 @@ fun AddCategoryScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
-        LazyVerticalStaggeredGrid(
-            columns              = StaggeredGridCells.Fixed(2),
-            modifier             = Modifier
+        LazyColumn(
+            modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTapGestures(onTap = {
-                        focusManager.clearFocus()
-                    })
+                    detectTapGestures(onTap = { focusManager.clearFocus() })
                 }
                 .padding(horizontal = 16.dp),
-            verticalItemSpacing = 12.dp,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp)
         ) {
-
-            item(span = StaggeredGridItemSpan.FullLine) {
+            item {
                 Column {
                     Text(
-                        text  = "Create tags to organize your notes.",
+                        text = "Create categories to organize your notes.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -174,95 +249,127 @@ fun AddCategoryScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(56.dp)
                             .background(
                                 MaterialTheme.colorScheme.surfaceContainerHigh,
                                 RoundedCornerShape(12.dp)
                             )
-                            .height(60.dp)
+                            .padding(start = 0.dp, end = 12.dp)
                     ) {
                         TextField(
-                            value       = newCategory,
-                            onValueChange= {
-                                if (it.length <= maxCharLimit) newCategory = it
+                            value = textFieldValue,
+                            onValueChange = { newValue ->
+                                val filteredText = newValue.text.filter { !it.isWhitespace() }
+                                if (filteredText.length <= 15) {
+                                    textFieldValue = newValue.copy(text = filteredText)
+                                }
                             },
-                            placeholder  = { Text("New tag name...") },
-                            textStyle    = MaterialTheme.typography.bodyLarge,
-                            colors       = transparentColors,
-                            singleLine   = true,
+                            placeholder = { Text(if (editingCategoryName == null) "Category name" else "Update name") },
+                            textStyle = MaterialTheme.typography.bodyLarge,
+                            colors = transparentColors,
+                            singleLine = true,
                             keyboardOptions = KeyboardOptions(
-                                capitalization = KeyboardCapitalization.Sentences
+                                capitalization = KeyboardCapitalization.None,
+                                autoCorrectEnabled = false,
+                                imeAction = ImeAction.Done
                             ),
-                            modifier     = Modifier
+                            keyboardActions = KeyboardActions(onDone = { performAction() }),
+                            modifier = Modifier
                                 .weight(1f)
-                                .padding(bottom = 4.dp, start = 4.dp)
+                                .focusRequester(focusRequester),
+                            trailingIcon = null
                         )
 
-                        Box(
-                            modifier        = Modifier.padding(end = 6.dp),
-                            contentAlignment= Alignment.Center
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Surface(
-                                onClick   = {
-                                    viewModel.addCategory(newCategory)
-                                    if (newCategory.isNotBlank()) {
-                                        newCategory = ""
-                                        focusManager.clearFocus()
+                                onClick = {
+                                    haptics.click()
+                                    if (editingCategoryName == null) {
+                                        textFieldValue = TextFieldValue("", selection = TextRange.Zero)
+                                    } else {
+                                        resetInput()
                                     }
                                 },
-                                shape     = RoundedCornerShape(12.dp),
-                                color     = MaterialTheme.colorScheme.primary,
-                                contentColor= MaterialTheme.colorScheme.onPrimary,
-                                modifier  = Modifier.size(48.dp)
+                                modifier = Modifier.size(40.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector     = Icons.Default.Add,
-                                        contentDescription= "Add",
-                                        modifier        = Modifier.size(24.dp)
-                                    )
+                                    Icon(Icons.Default.Close, "Clear", modifier = Modifier.size(18.dp))
+                                }
+                            }
+
+                            Surface(
+                                onClick = { if (isActionEnabled) performAction() },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (editingCategoryName != null) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .alpha(if (isActionEnabled) 1f else 0.5f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Crossfade(targetState = editingCategoryName != null, label = "ButtonIcon") { isEditing ->
+                                        Icon(
+                                            imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                }
+            }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(), // SPACING FIX: Removed bottom padding
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text      = "${newCategory.length} / $maxCharLimit",
-                        style     = MaterialTheme.typography.labelSmall,
-                        color     = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier  = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.End
+                        text = "EXISTING CATEGORIES",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 1.sp,
+                    )
+                    Text(
+                        text = "${textFieldValue.text.length}/15",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     )
                 }
             }
 
-            item(span = StaggeredGridItemSpan.FullLine) {
-                Text(
-                    text         = "EXISTING TAGS",
-                    style        = MaterialTheme.typography.labelMedium,
-                    fontWeight   = FontWeight.Bold,
-                    color        = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing= 1.sp,
-                    modifier     = Modifier.padding(bottom = 4.dp)
-                )
-            }
-
             items(categories, key = { it }) { category ->
                 CategoryChip(
-                    modifier   = Modifier.animateItem(
+                    modifier = Modifier.animateItem(
                         fadeInSpec = tween(300),
                         fadeOutSpec = tween(300)
                     ),
-                    text       = category,
-                    elevation  = 0.dp,
-                    onDelete   = { viewModel.removeCategory(category) },
+                    text = category,
+                    enabled = editingCategoryName == null,
+                    onEdit = {
+                        haptics.tick()
+                        textFieldValue = TextFieldValue(text = category, selection = TextRange(category.length))
+                        editingCategoryName = category
+                        focusRequester.requestFocus()
+                    },
+                    onDelete = {
+                        haptics.click()
+                        categoryToDelete = category
+                    }
                 )
             }
 
-            item(span = StaggeredGridItemSpan.FullLine) {
-                Spacer(modifier = Modifier.height(100.dp))
-            }
+            item { Spacer(modifier = Modifier.height(100.dp)) }
         }
     }
 }
@@ -270,52 +377,63 @@ fun AddCategoryScreen(
 @Composable
 fun CategoryChip(
     modifier: Modifier = Modifier,
-    text       : String,
-    elevation  : androidx.compose.ui.unit.Dp = 0.dp,
-    onDelete   : () -> Unit,
+    text: String,
+    enabled: Boolean = true,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
 ) {
+    val alpha = if (enabled) 1f else 0.38f
+
     Surface(
-        color         = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape         = RoundedCornerShape(8.dp),
-        border        = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier      = modifier
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha)),
+        modifier = modifier
             .fillMaxWidth()
-            .height(40.dp),
-        shadowElevation= elevation
+            .height(56.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier          = Modifier
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 12.dp)
+                .padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier          = Modifier.weight(1f)
-            ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+            )
 
-                Text(
-                    text      = text,
-                    style     = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines  = 1,
-                    overflow  = TextOverflow.Ellipsis,
-                    modifier  = Modifier.weight(1f, fill = false)
-                )
+            Surface(
+                onClick = { if (enabled) onEdit() },
+                shape = RoundedCornerShape(8.dp),
+                color = if (enabled) MaterialTheme.colorScheme.surfaceContainerHighest
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Edit, "Edit", modifier = Modifier.size(18.dp))
+                }
             }
 
-            IconButton(
-                onClick  = onDelete,
-                modifier = Modifier
-                    .size(40.dp)
-                    .padding(end = 16.dp)
+            Surface(
+                onClick = { if (enabled) onDelete() },
+                shape = RoundedCornerShape(8.dp),
+                color = if (enabled) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                contentColor = if (enabled) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                modifier = Modifier.size(40.dp)
             ) {
-                Icon(
-                    imageVector     = Icons.Default.Close,
-                    contentDescription= "Remove",
-                    tint            = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier        = Modifier.size(16.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(18.dp))
+                }
             }
         }
     }
