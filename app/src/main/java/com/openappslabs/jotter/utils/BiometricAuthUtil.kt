@@ -26,7 +26,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 data class AuthSupport(
     val hasFingerprint: Boolean,
-    val hasDeviceCredential: Boolean
+    val hasDeviceCredential: Boolean,
+    val availableType: BiometricAuthType
 )
 
 object BiometricAuthUtil {
@@ -36,9 +37,16 @@ object BiometricAuthUtil {
         val hasBiometrics = biometricManager.canAuthenticate(BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
         val hasDeviceCredential = keyguardManager.isDeviceSecure
 
+        val type = when {
+            hasBiometrics -> BiometricAuthType.BIOMETRIC
+            hasDeviceCredential -> BiometricAuthType.DEVICE_CREDENTIAL
+            else -> BiometricAuthType.NONE
+        }
+
         return AuthSupport(
             hasFingerprint = hasBiometrics,
-            hasDeviceCredential = hasDeviceCredential
+            hasDeviceCredential = hasDeviceCredential,
+            availableType = type
         )
     }
 
@@ -65,17 +73,19 @@ object BiometricAuthUtil {
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
-                    if (errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON && errorCode != BiometricPrompt.ERROR_USER_CANCELED) {
+                    if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && 
+                        errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
                         onError(errString.toString())
                     }
                 }
             })
 
-        val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
             .setAllowedAuthenticators(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
+            .build()
 
-        biometricPrompt.authenticate(promptInfoBuilder.build())
+        biometricPrompt.authenticate(promptInfo)
     }
 }

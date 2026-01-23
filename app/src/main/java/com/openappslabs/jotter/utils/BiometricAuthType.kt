@@ -16,8 +16,17 @@
 
 package com.openappslabs.jotter.utils
 
-enum class BiometricAuthType {
-    NONE,
-    BIOMETRIC, // Fingerprint / Face
-    DEVICE_CREDENTIAL // PIN / Pattern / Password
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+
+enum class BiometricAuthType(val authenticators: Int) {
+    NONE(0),
+    BIOMETRIC(BIOMETRIC_STRONG),
+    DEVICE_CREDENTIAL(androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL);
+
+    val isAvailable: Boolean get() = this != NONE
+    val label: String get() = when (this) {
+        NONE -> "None"
+        BIOMETRIC -> "Biometric"
+        DEVICE_CREDENTIAL -> "Device Credential"
+    }
 }
