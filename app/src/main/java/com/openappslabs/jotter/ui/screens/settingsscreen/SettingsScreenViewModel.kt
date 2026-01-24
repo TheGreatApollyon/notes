@@ -16,6 +16,7 @@
 
 package com.openappslabs.jotter.ui.screens.settingsscreen
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openappslabs.jotter.data.repository.NotesRepository
@@ -23,6 +24,7 @@ import com.openappslabs.jotter.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -43,6 +45,7 @@ class SettingsScreenViewModel @Inject constructor(
                 defaultOpenInEdit = prefs.defaultOpenInEdit,
                 isHapticEnabled = prefs.isHapticEnabled,
                 isBiometricEnabled = prefs.isBiometricEnabled,
+                isAppLockEnabled = prefs.isAppLockEnabled,
                 isSecureMode = prefs.isSecureMode,
                 showAddCategoryButton = prefs.showAddCategoryButton,
                 isGridView = prefs.isGridView,
@@ -50,12 +53,14 @@ class SettingsScreenViewModel @Inject constructor(
                 dateFormat = prefs.dateFormat
             )
         }
+        .distinctUntilChanged()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = UiState(isLoading = true)
         )
 
+    @Immutable
     data class UiState(
         val isLoading: Boolean = true,
         val isDarkMode: Boolean = false,
@@ -64,11 +69,12 @@ class SettingsScreenViewModel @Inject constructor(
         val defaultOpenInEdit: Boolean = false,
         val isHapticEnabled: Boolean = true,
         val isBiometricEnabled: Boolean = false,
+        val isAppLockEnabled: Boolean = false,
         val isSecureMode: Boolean = false,
         val showAddCategoryButton: Boolean = true,
         val isGridView: Boolean = false,
         val is24HourFormat: Boolean = false,
-        val dateFormat: String = "dd MMM"
+        val dateFormat: String = "dd MMM",
     )
 
     fun updateShowAddCategoryButton(show: Boolean) {
@@ -96,12 +102,16 @@ class SettingsScreenViewModel @Inject constructor(
     }
 
     fun updateBiometricEnabled(isEnabled: Boolean) {
-        viewModelScope.launch { 
-            repository.setBiometric(isEnabled) 
+        viewModelScope.launch {
+            repository.setBiometric(isEnabled)
             if (!isEnabled) {
                 notesRepository.unlockAllNotes()
             }
         }
+    }
+
+    fun updateAppLockEnabled(isEnabled: Boolean) {
+        viewModelScope.launch { repository.setAppLock(isEnabled) }
     }
 
     fun updateSecureMode(isEnabled: Boolean) {

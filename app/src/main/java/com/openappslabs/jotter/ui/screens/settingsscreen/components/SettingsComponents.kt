@@ -1,0 +1,297 @@
+/*
+ * Copyright (c) 2025 Open Apps Labs
+ *
+ * This file is part of Jotter
+ *
+ * Jotter is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ */
+
+package com.openappslabs.jotter.ui.screens.settingsscreen.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.openappslabs.jotter.ui.components.DateFormatButton
+import com.openappslabs.jotter.ui.components.EditViewButton
+import com.openappslabs.jotter.ui.components.GridListButton
+import com.openappslabs.jotter.ui.components.TimeFormatButton
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
+import com.openappslabs.jotter.utils.AuthSupport
+
+@Composable
+fun SettingsGroup(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.Transparent,
+            tonalElevation = 0.dp
+        ) {
+            Column(content = content)
+        }
+    }
+}
+
+@Composable
+fun TinyGap() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(2.dp)
+            .background(MaterialTheme.colorScheme.surface)
+    )
+}
+
+@Composable
+private fun SettingsItemBase(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    iconColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    content: @Composable RowScope.() -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 80.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .then(modifier)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(40.dp),
+            shape = RoundedCornerShape(10.dp),
+            color = iconColor.copy(alpha = 0.1f)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = titleColor
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+            }
+        }
+        content()
+    }
+}
+
+@Composable
+fun SettingsItemSwitch(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val haptics = rememberJotterHaptics()
+
+    val switchColors = SwitchDefaults.colors(
+        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+        checkedTrackColor = MaterialTheme.colorScheme.primary,
+        checkedIconColor = MaterialTheme.colorScheme.primary,
+        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+        uncheckedIconColor = MaterialTheme.colorScheme.surfaceVariant
+    )
+
+    SettingsItemBase(icon = icon, title = title, subtitle = subtitle) {
+        Switch(
+            checked = checked,
+            onCheckedChange = {
+                haptics.tick()
+                onCheckedChange(it)
+            },
+            colors = switchColors,
+            thumbContent = {
+                val thumbIcon = if (checked) Icons.Filled.Check else Icons.Filled.Close
+                Icon(
+                    imageVector = thumbIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                )
+            }
+        )
+    }
+}
+
+@Composable
+fun SettingsItemGridView(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    isGridView: Boolean,
+    onToggle: () -> Unit
+) {
+    SettingsItemBase(icon = icon, title = title, subtitle = subtitle) {
+        GridListButton(
+            isGridView = isGridView,
+            onToggle = onToggle
+        )
+    }
+}
+
+@Composable
+fun SettingsItemArrow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    onClick: () -> Unit,
+    isDestructive: Boolean = false
+) {
+    val haptics = rememberJotterHaptics()
+    val color = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+
+    SettingsItemBase(
+        modifier = Modifier.clickable {
+            haptics.click()
+            onClick()
+        },
+        icon = icon,
+        title = title,
+        subtitle = subtitle,
+        iconColor = color,
+        titleColor = if (isDestructive) color else MaterialTheme.colorScheme.onSurface,
+    ) {
+        if (!isDestructive) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+@Composable
+fun SettingsItemNoteLock(
+    title: String,
+    subtitle: String? = null,
+    checked: Boolean,
+    authSupport: AuthSupport,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val icon = if (checked) {
+        if (authSupport.hasFingerprint) Icons.Default.Fingerprint else Icons.Default.Lock
+    } else Icons.Default.LockOpen
+
+    SettingsItemSwitch(
+        icon = icon,
+        title = title,
+        subtitle = subtitle,
+        checked = checked,
+        onCheckedChange = onCheckedChange
+    )
+}
+
+@Composable
+fun SettingsItemTimeFormat(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    is24Hour: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    SettingsItemBase(icon = icon, title = title, subtitle = subtitle) {
+        TimeFormatButton(
+            is24Hour = is24Hour,
+            onToggle = { onToggle(!is24Hour) }
+        )
+    }
+}
+
+@Composable
+fun SettingsItemDateFormat(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    currentFormat: String,
+    onFormatSelected: (String) -> Unit
+) {
+    SettingsItemBase(icon = icon, title = title, subtitle = subtitle) {
+        DateFormatButton(
+            currentFormat = currentFormat,
+            onFormatSelected = onFormatSelected
+        )
+    }
+}
+
+@Composable
+fun SettingsItemEditView(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    isEditDefault: Boolean,
+    onToggleEditDefault: (Boolean) -> Unit
+) {
+    SettingsItemBase(icon = icon, title = title, subtitle = subtitle) {
+        EditViewButton(
+            isEditing = isEditDefault,
+            onToggle = { onToggleEditDefault(!isEditDefault) }
+        )
+    }
+}
