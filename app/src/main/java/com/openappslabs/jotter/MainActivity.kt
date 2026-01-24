@@ -20,20 +20,23 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.openappslabs.jotter.data.repository.UserPreferencesRepository
 import com.openappslabs.jotter.navigation.AppNavHost
 import com.openappslabs.jotter.ui.theme.JotterTheme
-import com.openappslabs.jotter.ui.theme.LocalHapticEnabled
+import com.openappslabs.jotter.utils.BiometricAuthUtil
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -46,33 +49,73 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
         setContent {
-            val userPreferences by userPreferencesRepository.userPreferencesFlow.collectAsState(initial = com.openappslabs.jotter.data.repository.UserPreferences())
+            val userPreferences by userPreferencesRepository.userPreferencesFlow.collectAsStateWithLifecycle(initialValue = null)
+            val lifecycleOwner = LocalLifecycleOwner.current
+            val systemInDarkTheme = isSystemInDarkTheme()
+            
+            var isAppAuthenticated by rememberSaveable { mutableStateOf(false) }
+            var authTrigger by rememberSaveable { mutableIntStateOf(0) }
 
-            LaunchedEffect(userPreferences.isSecureMode) {
-                if (userPreferences.isSecureMode) {
-                    window.setFlags(
-                        WindowManager.LayoutParams.FLAG_SECURE,
-                        WindowManager.LayoutParams.FLAG_SECURE
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    when (event) {
+                        Lifecycle.Event.ON_STOP -> {
+                            if (!isChangingConfigurations) {
+                                isAppAuthenticated = false
+                            }
+                        }
+                        Lifecycle.Event.ON_START -> {
+                            authTrigger++
+                        }
+                        else -> {}
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+
+            LaunchedEffect(userPreferences?.isAppLockEnabled) {
+                if (userPreferences?.isAppLockEnabled == false) {
+                    isAppAuthenticated = true
+                }
+            }
+
+            LaunchedEffect(authTrigger, userPreferences == null) {
+                if (userPreferences?.isAppLockEnabled == true && !isAppAuthenticated) {
+                    BiometricAuthUtil.authenticate(
+                        activity = this@MainActivity,
+                        title = "Jotter Locked",
+                        subtitle = "Authenticate To Open The App",
+                        onSuccess = { isAppAuthenticated = true },
+                        onError = { finish() }
                     )
+                }
+            }
+
+            LaunchedEffect(userPreferences?.isSecureMode) {
+                if (userPreferences?.isSecureMode == true) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 } else {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 }
             }
 
             JotterTheme(
-                isDarkTheme = userPreferences.isDarkMode,
-                isTrueBlackEnabled = userPreferences.isTrueBlackEnabled,
-                isDynamicColor = userPreferences.isDynamicColor
+                isDarkTheme = userPreferences?.isDarkMode ?: systemInDarkTheme,
+                isTrueBlackEnabled = userPreferences?.isTrueBlackEnabled ?: false,
+                isDynamicColor = userPreferences?.isDynamicColor ?: true,
+                isHapticEnabled = userPreferences?.isHapticEnabled ?: true
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CompositionLocalProvider(LocalHapticEnabled provides userPreferences.isHapticEnabled) {
-                        val navController = rememberNavController()
-                        AppNavHost(navController = navController)
-                    }
+                    val navController = rememberNavController()
+                    AppNavHost(navController = navController)
                 }
             }
         }
