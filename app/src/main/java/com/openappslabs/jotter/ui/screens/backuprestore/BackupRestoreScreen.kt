@@ -18,7 +18,6 @@ package com.openappslabs.jotter.ui.screens.backuprestore
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +42,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -56,7 +56,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +64,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.openappslabs.jotter.ui.components.BackupDialogType
 import com.openappslabs.jotter.ui.components.BackupRestoreDialog
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -75,9 +75,11 @@ fun BackupRestoreScreen(
     onBackClick: () -> Unit,
     viewModel: BackupRestoreScreenViewModel = hiltViewModel()
 ) {
+    val haptics = rememberJotterHaptics()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var activeDialog by remember { mutableStateOf<BackupDialogType?>(null) }
+
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
@@ -90,7 +92,6 @@ fun BackupRestoreScreen(
                         }
                         activeDialog = BackupDialogType.EXPORT_SUCCESS
                     } catch (e: Exception) {
-                        e.printStackTrace()
                         activeDialog = BackupDialogType.ERROR
                     }
                 },
@@ -118,7 +119,7 @@ fun BackupRestoreScreen(
 
     if (uiState.lastImportSuccess == true && activeDialog == null) {
         activeDialog = BackupDialogType.IMPORT_SUCCESS
-        viewModel.clearError() // Reset state after triggering dialog
+        viewModel.clearError()
     }
     if (uiState.errorMessage != null && activeDialog == null) {
         activeDialog = BackupDialogType.ERROR
@@ -136,7 +137,10 @@ fun BackupRestoreScreen(
                 },
                 navigationIcon = {
                     Surface(
-                        onClick = onBackClick,
+                        onClick = {
+                            haptics.click()
+                            onBackClick()
+                        },
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                         modifier = Modifier
@@ -155,13 +159,11 @@ fun BackupRestoreScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = Color.Unspecified,
-                    navigationIconContentColor = Color.Unspecified,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = Color.Unspecified
                 )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -173,23 +175,26 @@ fun BackupRestoreScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Warning,
-                        contentDescription = "Warning",
-                        modifier = Modifier.size(24.dp)
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.tertiary
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(24.dp))
                     Text(
                         text = "Data is exported as a local, readable JSON file. Keep it safe.",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
             }
@@ -202,6 +207,7 @@ fun BackupRestoreScreen(
                     title = "Export Notes",
                     subtitle = "Save all notes and tags to a local file",
                     onClick = {
+                        haptics.click()
                         if (uiState.hasDataToExport) {
                             val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                             exportLauncher.launch("jotter_backup_$timeStamp.json")
@@ -210,23 +216,29 @@ fun BackupRestoreScreen(
                         }
                     }
                 )
-                TinyGap()
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
                 BackupRestoreItem(
                     icon = Icons.Default.Download,
                     title = "Import Notes",
                     subtitle = "Restore data from a previously exported file",
-                    onClick = { importLauncher.launch("application/json") }
+                    onClick = {
+                        haptics.click()
+                        importLauncher.launch("application/json")
+                    }
                 )
             }
 
             if (uiState.isExportInProgress || uiState.isImportInProgress) {
+                Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = "Processing...",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
@@ -237,22 +249,13 @@ fun BackupRestoreScreen(
         BackupRestoreDialog(
             type = type,
             onDismiss = {
+                haptics.click()
                 activeDialog = null
                 viewModel.clearError()
             },
             errorMessage = uiState.errorMessage
         )
     }
-}
-
-@Composable
-fun TinyGap() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(2.dp)
-            .background(MaterialTheme.colorScheme.background)
-    ) {}
 }
 
 @Composable
