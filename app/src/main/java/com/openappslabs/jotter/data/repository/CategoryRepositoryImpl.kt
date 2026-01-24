@@ -16,16 +16,18 @@
 
 package com.openappslabs.jotter.data.repository
 
+import androidx.room.withTransaction
 import com.openappslabs.jotter.data.model.Category
-import com.openappslabs.jotter.data.model.Note
 import com.openappslabs.jotter.data.source.CategoryDao
+import com.openappslabs.jotter.data.source.JotterDatabase
+import com.openappslabs.jotter.data.source.NoteDao
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class CategoryRepositoryImpl @Inject constructor(
     private val categoryDao: CategoryDao,
-    private val notesRepository: NotesRepository // Used for cleaning up note references
+    private val noteDao: NoteDao,
+    private val database: JotterDatabase
 ) : CategoryRepository {
 
     override fun getAllCategories(): Flow<List<Category>> = categoryDao.getAllCategories()
@@ -33,8 +35,17 @@ class CategoryRepositoryImpl @Inject constructor(
     override suspend fun insertCategory(name: String) {
         val trimmed = name.trim()
         if (trimmed.isNotBlank()) {
-            val category = Category(name = trimmed)
-            categoryDao.insertCategory(category)
+            categoryDao.insertCategory(Category(name = trimmed))
+        }
+    }
+
+    override suspend fun renameCategory(oldName: String, newName: String) {
+        val trimmed = newName.trim()
+        if (trimmed.isNotBlank() && oldName != trimmed) {
+            database.withTransaction {
+                categoryDao.updateCategoryName(oldName, trimmed)
+                noteDao.updateNoteCategories(oldName, trimmed)
+            }
         }
     }
 
@@ -42,12 +53,7 @@ class CategoryRepositoryImpl @Inject constructor(
         categoryDao.deleteCategoryByName(name)
     }
 
-    override suspend fun clearCategoryReferences(categoryName: String, notesFlow: Flow<List<Note>>) {
-        val notesToUpdate = notesFlow.first()
-        notesToUpdate
-            .filter { it.category == categoryName }
-            .forEach { note ->
-                notesRepository.updateNote(note.copy(category = ""))
-            }
+    override suspend fun clearCategoryReferences(categoryName: String) {
+        noteDao.updateNoteCategories(categoryName, "")
     }
 }

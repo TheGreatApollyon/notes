@@ -17,7 +17,7 @@
 package com.openappslabs.jotter.data.repository
 
 import androidx.room.withTransaction
-import com.openappslabs.jotter.data.model.Category
+import com.openappslabs.jotter.data.model.BackupData
 import com.openappslabs.jotter.data.model.Note
 import com.openappslabs.jotter.data.source.CategoryDao
 import com.openappslabs.jotter.data.source.JotterDatabase
@@ -28,13 +28,12 @@ import javax.inject.Inject
 class NotesRepositoryImpl @Inject constructor(
     private val noteDao: NoteDao,
     private val categoryDao: CategoryDao,
-    private val database: JotterDatabase // ✨ NEW: Inject Database for Transactions
+    private val database: JotterDatabase
 ) : NotesRepository {
 
     override fun getAllNotes(): Flow<List<Note>> = noteDao.getAllNotes()
     override fun getArchivedNotes(): Flow<List<Note>> = noteDao.getArchivedNotes()
     override fun getTrashedNotes(): Flow<List<Note>> = noteDao.getTrashedNotes()
-
     override suspend fun getNoteById(noteId: Int): Note? = noteDao.getNoteById(noteId)
 
     override suspend fun addNote(note: Note): Long {
@@ -46,47 +45,39 @@ class NotesRepositoryImpl @Inject constructor(
     }
 
     override suspend fun archiveNote(note: Note) {
-        val existingNote = noteDao.getNoteById(note.id)
-        if (existingNote != null) {
-            noteDao.update(existingNote.copy(
-                isArchived = true,
-                isTrashed = false,
-                updatedTime = System.currentTimeMillis()
-            ))
-        }
+        noteDao.updateNoteStatus(
+            noteId = note.id,
+            isArchived = true,
+            isTrashed = false,
+            updatedTime = System.currentTimeMillis()
+        )
     }
 
     override suspend fun unarchiveNote(note: Note) {
-        val existingNote = noteDao.getNoteById(note.id)
-        if (existingNote != null) {
-            noteDao.update(existingNote.copy(
-                isArchived = false,
-                isTrashed = false,
-                updatedTime = System.currentTimeMillis()
-            ))
-        }
+        noteDao.updateNoteStatus(
+            noteId = note.id,
+            isArchived = false,
+            isTrashed = false,
+            updatedTime = System.currentTimeMillis()
+        )
     }
 
     override suspend fun trashNote(note: Note) {
-        val existingNote = noteDao.getNoteById(note.id)
-        if (existingNote != null) {
-            noteDao.update(existingNote.copy(
-                isTrashed = true,
-                isArchived = false,
-                updatedTime = System.currentTimeMillis()
-            ))
-        }
+        noteDao.updateNoteStatus(
+            noteId = note.id,
+            isArchived = false,
+            isTrashed = true,
+            updatedTime = System.currentTimeMillis()
+        )
     }
 
     override suspend fun restoreNote(note: Note) {
-        val existingNote = noteDao.getNoteById(note.id)
-        if (existingNote != null) {
-            noteDao.update(existingNote.copy(
-                isTrashed = false,
-                isArchived = false,
-                updatedTime = System.currentTimeMillis()
-            ))
-        }
+        noteDao.updateNoteStatus(
+            noteId = note.id,
+            isArchived = false,
+            isTrashed = false,
+            updatedTime = System.currentTimeMillis()
+        )
     }
 
     override suspend fun deleteNote(note: Note) {
@@ -97,27 +88,28 @@ class NotesRepositoryImpl @Inject constructor(
         noteDao.emptyTrash()
     }
 
-    override fun getCategories(): Flow<List<String>> = noteDao.getCategories()
+    override fun getCategories(): Flow<List<String>> = categoryDao.getAllCategoryNames()
 
-    override suspend fun getBackupData(): Pair<List<Note>, List<Category>> {
+    override suspend fun getBackupData(): BackupData {
         val notes = noteDao.getAllNotesSync()
         val categories = categoryDao.getAllCategoriesSync()
-        return Pair(notes, categories)
+        return BackupData(notes, categories)
     }
 
-    override suspend fun restoreBackupData(notes: List<Note>, categories: List<Category>) {
+    override suspend fun restoreBackupData(backupData: BackupData) {
         database.withTransaction {
             noteDao.deleteAllNotes()
             categoryDao.deleteAllCategories()
-
-            noteDao.insertAll(notes)
-            categoryDao.insertAll(categories)
+            noteDao.insertAll(backupData.notes)
+            categoryDao.insertAll(backupData.categories)
         }
     }
 
     override suspend fun clearAllDatabaseData() {
-        noteDao.deleteAllNotes()
-        categoryDao.deleteAllCategories()
+        database.withTransaction {
+            noteDao.deleteAllNotes()
+            categoryDao.deleteAllCategories()
+        }
     }
 
     override suspend fun unlockAllNotes() {
