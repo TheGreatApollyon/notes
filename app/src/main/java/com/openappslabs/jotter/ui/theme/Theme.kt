@@ -19,7 +19,6 @@ package com.openappslabs.jotter.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
@@ -28,7 +27,9 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -40,47 +41,44 @@ fun JotterTheme(
     isDarkTheme: Boolean = isSystemInDarkTheme(),
     isTrueBlackEnabled: Boolean = false,
     isDynamicColor: Boolean = true,
+    isHapticEnabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
 
-    val colorScheme: ColorScheme = when {
-        isDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (isDarkTheme) {
-                dynamicDarkColorScheme(context).let {
-                    if (isTrueBlackEnabled) {
-                        it.copy(background = Color.Black, surface = Color.Black)
-                    } else {
-                        it
-                    }
-                }
-            } else {
-                dynamicLightColorScheme(context)
+    val colorScheme = remember(isDarkTheme, isTrueBlackEnabled, isDynamicColor) {
+        val base = when {
+            isDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             }
+            isDarkTheme -> darkColorScheme()
+            else -> lightColorScheme()
         }
-        isDarkTheme -> {
-            if (isTrueBlackEnabled) {
-                darkColorScheme(background = Color.Black, surface = Color.Black)
-            } else {
-                darkColorScheme()
-            }
-        }
-        else -> lightColorScheme()
+
+        if (isDarkTheme && isTrueBlackEnabled) {
+            base.copy(
+                background = Color.Black,
+                surface = Color.Black
+            )
+        } else base
     }
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkTheme
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDarkTheme
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !isDarkTheme
+            insetsController.isAppearanceLightNavigationBars = !isDarkTheme
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content,
-        motionScheme = MotionScheme.expressive()
-    )
+    CompositionLocalProvider(LocalHapticEnabled provides isHapticEnabled) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            motionScheme = remember { MotionScheme.expressive() },
+            content = content
+        )
+    }
 }

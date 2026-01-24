@@ -33,11 +33,17 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :noteId")
     suspend fun getNoteById(noteId: Int): Note?
 
+    @Query("UPDATE notes SET isArchived = :isArchived, isTrashed = :isTrashed, updatedTime = :updatedTime WHERE id = :noteId")
+    suspend fun updateNoteStatus(noteId: Int, isArchived: Boolean, isTrashed: Boolean, updatedTime: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(note: Note): Long // Returns the new row ID
+    suspend fun insert(note: Note): Long
 
     @Update
     suspend fun update(note: Note)
+
+    @Query("UPDATE notes SET category = :newName WHERE category = :oldName")
+    suspend fun updateNoteCategories(oldName: String, newName: String)
 
     @Delete
     suspend fun delete(note: Note)
@@ -50,9 +56,6 @@ interface NoteDao {
 
     @Query("DELETE FROM notes WHERE isTrashed = 1")
     suspend fun emptyTrash()
-
-    @Query("SELECT DISTINCT category FROM notes WHERE category IS NOT NULL AND category != ''")
-    fun getCategories(): Flow<List<String>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(notes: List<Note>)

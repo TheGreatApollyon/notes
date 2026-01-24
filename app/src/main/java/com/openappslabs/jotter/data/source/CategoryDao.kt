@@ -2,8 +2,7 @@
  * Copyright (c) 2025 Open Apps Labs
  *
  * This file is part of Jotter
- *
- * Jotter is free software: you can redistribute it and/or modify it under the terms of the
+ * * Jotter is free software: you can redistribute it and/or modify it under the terms of the
  * GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * Jotter is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -25,12 +24,18 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CategoryDao {
-
-    @Query("SELECT * FROM categories WHERE name != ''")
+    
+    @Query("SELECT * FROM categories WHERE name != '' ORDER BY name ASC")
     fun getAllCategories(): Flow<List<Category>>
+
+    @Query("SELECT name FROM categories WHERE name != '' ORDER BY name ASC")
+    fun getAllCategoryNames(): Flow<List<String>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCategory(category: Category)
+
+    @Query("UPDATE categories SET name = :newName WHERE name = :oldName")
+    suspend fun updateCategoryName(oldName: String, newName: String)
 
     @Query("DELETE FROM categories WHERE name = :name")
     suspend fun deleteCategoryByName(name: String)
@@ -41,6 +46,6 @@ interface CategoryDao {
     @Query("DELETE FROM categories")
     suspend fun deleteAllCategories()
 
-    @Query("SELECT * FROM categories")
+    @Query("SELECT * FROM categories WHERE name != '' ORDER BY name ASC")
     suspend fun getAllCategoriesSync(): List<Category>
 }

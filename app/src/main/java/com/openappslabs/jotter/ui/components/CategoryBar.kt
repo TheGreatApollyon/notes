@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -43,11 +44,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 
+@Immutable
+data class CategoryItems(val items: List<String> = emptyList())
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryBar(
     modifier: Modifier = Modifier,
-    categories: List<String>,
+    categories: CategoryItems,
     selectedCategory: String,
     onCategorySelect: (String) -> Unit,
     onAddCategoryClick: () -> Unit,
@@ -56,12 +60,8 @@ fun CategoryBar(
     val listState = rememberLazyListState()
     val density = LocalDensity.current
     val haptics = rememberJotterHaptics()
-
-    val displayList = remember(categories) {
-        val list = mutableListOf("All")
-        list.addAll(categories)
-        list
-    }
+    val displayList = remember(categories) { listOf("All") + categories.items }
+    val scrollPaddingPx = remember(density) { with(density) { 16.dp.toPx() } }
 
     LaunchedEffect(selectedCategory) {
         val index = displayList.indexOf(selectedCategory)
@@ -78,14 +78,13 @@ fun CategoryBar(
                 val itemStart = visibleItem.offset
                 val itemEnd = itemStart + visibleItem.size
                 val viewportEnd = layoutInfo.viewportEndOffset
-                val padding = with(density) { 16.dp.toPx() }
 
                 if (itemEnd > viewportEnd) {
-                    listState.animateScrollBy((itemEnd - viewportEnd) + padding, animSpec)
+                    listState.animateScrollBy((itemEnd - viewportEnd) + scrollPaddingPx, animSpec)
                 } else if (itemStart < 0) {
-                    listState.animateScrollBy(itemStart.toFloat() - padding, animSpec)
+                    listState.animateScrollBy(itemStart.toFloat() - scrollPaddingPx, animSpec)
                 } else if (index == 0 && itemStart > 0) {
-                    listState.animateScrollBy(itemStart.toFloat() - padding, animSpec)
+                    listState.animateScrollBy(itemStart.toFloat() - scrollPaddingPx, animSpec)
                 }
             } else {
                 listState.animateScrollToItem(index)
@@ -96,7 +95,7 @@ fun CategoryBar(
     LazyRow(
         state = listState,
         modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

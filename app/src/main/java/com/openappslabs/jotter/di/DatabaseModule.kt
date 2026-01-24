@@ -18,11 +18,13 @@ package com.openappslabs.jotter.di
 
 import android.content.Context
 import androidx.room.Room
-import com.openappslabs.jotter.data.repository.CategoryRepository // New Import
-import com.openappslabs.jotter.data.repository.CategoryRepositoryImpl // New Import
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.openappslabs.jotter.data.repository.CategoryRepository
+import com.openappslabs.jotter.data.repository.CategoryRepositoryImpl
 import com.openappslabs.jotter.data.repository.NotesRepository
 import com.openappslabs.jotter.data.repository.NotesRepositoryImpl
-import com.openappslabs.jotter.data.source.CategoryDao // New Import
+import com.openappslabs.jotter.data.source.CategoryDao
 import com.openappslabs.jotter.data.source.JotterDatabase
 import com.openappslabs.jotter.data.source.NoteDao
 import dagger.Binds
@@ -51,15 +53,23 @@ abstract class DatabaseModule {
 
 
     companion object {
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notes_isArchived_isTrashed` ON `notes` (`isArchived`, `isTrashed`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notes_category` ON `notes` (`category`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notes_isPinned_updatedTime` ON `notes` (`isPinned`, `updatedTime`)")
+            }
+        }
+
         @Provides
         @Singleton
         fun provideDatabase(@ApplicationContext context: Context): JotterDatabase {
             return Room.databaseBuilder(
                 context,
                 JotterDatabase::class.java,
-                "jotter_db" // Database file name
+                "jotter_db"
             )
-                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_4_5)
                 .build()
         }
 

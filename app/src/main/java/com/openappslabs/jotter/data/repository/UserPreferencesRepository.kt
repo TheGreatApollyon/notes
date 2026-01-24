@@ -16,6 +16,7 @@
 
 package com.openappslabs.jotter.data.repository
 
+import androidx.compose.runtime.Immutable
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -24,9 +25,11 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 import javax.inject.Inject
+@Immutable
 data class UserPreferences(
     val isGridView: Boolean = false,
     val isDarkMode: Boolean = false,
@@ -35,6 +38,7 @@ data class UserPreferences(
     val defaultOpenInEdit: Boolean = false,
     val isHapticEnabled: Boolean = true,
     val isBiometricEnabled: Boolean = false,
+    val isAppLockEnabled: Boolean = false,
     val isSecureMode: Boolean = false,
     val showAddCategoryButton: Boolean = true,
     val is24HourFormat: Boolean = false,
@@ -53,6 +57,7 @@ class UserPreferencesRepository @Inject constructor(
         val DEFAULT_OPEN_EDIT = booleanPreferencesKey("default_open_edit")
         val IS_HAPTIC = booleanPreferencesKey("is_haptic")
         val IS_BIOMETRIC = booleanPreferencesKey("is_biometric")
+        val IS_APP_LOCK = booleanPreferencesKey("is_app_lock")
         val IS_SECURE_MODE = booleanPreferencesKey("is_secure_mode")
         val SHOW_ADD_CATEGORY_BUTTON = booleanPreferencesKey("show_add_category_button")
         val IS_24_HOUR_FORMAT = booleanPreferencesKey("is_24_hour_format")
@@ -75,12 +80,14 @@ class UserPreferencesRepository @Inject constructor(
                 defaultOpenInEdit = preferences[Keys.DEFAULT_OPEN_EDIT] ?: false,
                 isHapticEnabled = preferences[Keys.IS_HAPTIC] ?: true,
                 isBiometricEnabled = preferences[Keys.IS_BIOMETRIC] ?: false,
+                isAppLockEnabled = preferences[Keys.IS_APP_LOCK] ?: false,
                 isSecureMode = preferences[Keys.IS_SECURE_MODE] ?: false,
                 showAddCategoryButton = preferences[Keys.SHOW_ADD_CATEGORY_BUTTON] ?: true,
                 is24HourFormat = preferences[Keys.IS_24_HOUR_FORMAT] ?: false,
                 dateFormat = preferences[Keys.DATE_FORMAT] ?: "dd MMM"
             )
         }
+        .distinctUntilChanged()
 
     suspend fun setGridView(isGrid: Boolean) {
         dataStore.edit { it[Keys.IS_GRID_VIEW] = isGrid }
@@ -108,6 +115,10 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setBiometric(enabled: Boolean) {
         dataStore.edit { it[Keys.IS_BIOMETRIC] = enabled }
+    }
+
+    suspend fun setAppLock(enabled: Boolean) {
+        dataStore.edit { it[Keys.IS_APP_LOCK] = enabled }
     }
 
     suspend fun setSecureMode(enabled: Boolean) {

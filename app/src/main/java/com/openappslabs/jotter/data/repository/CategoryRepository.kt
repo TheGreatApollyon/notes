@@ -17,7 +17,6 @@
 package com.openappslabs.jotter.data.repository
 
 import com.openappslabs.jotter.data.model.Category
-import com.openappslabs.jotter.data.model.Note
 import kotlinx.coroutines.flow.Flow
 
 interface CategoryRepository {
@@ -25,7 +24,10 @@ interface CategoryRepository {
     fun getAllCategories(): Flow<List<Category>>
 
     suspend fun insertCategory(name: String)
+
+    suspend fun renameCategory(oldName: String, newName: String)
+
     suspend fun deleteCategoryByName(name: String)
 
-    suspend fun clearCategoryReferences(categoryName: String, notesFlow: Flow<List<Note>>)
+    suspend fun clearCategoryReferences(categoryName: String)
 }

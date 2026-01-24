@@ -16,18 +16,15 @@
 
 package com.openappslabs.jotter.data.repository
 
-import com.openappslabs.jotter.data.model.Category // ✨ CRITICAL MISSING IMPORT
+import com.openappslabs.jotter.data.model.BackupData
 import com.openappslabs.jotter.data.model.Note
 import kotlinx.coroutines.flow.Flow
 interface NotesRepository {
-
     fun getAllNotes(): Flow<List<Note>>
     fun getArchivedNotes(): Flow<List<Note>>
     fun getTrashedNotes(): Flow<List<Note>>
-    suspend fun getNoteById(noteId: Int): Note?
-
     fun getCategories(): Flow<List<String>>
-
+    suspend fun getNoteById(noteId: Int): Note?
     suspend fun addNote(note: Note): Long
     suspend fun updateNote(note: Note)
 
@@ -35,14 +32,12 @@ interface NotesRepository {
     suspend fun unarchiveNote(note: Note)
     suspend fun trashNote(note: Note)
     suspend fun restoreNote(note: Note)
-
     suspend fun deleteNote(note: Note)
     suspend fun emptyTrash()
 
-    suspend fun getBackupData(): Pair<List<Note>, List<Category>>
-    suspend fun restoreBackupData(notes: List<Note>, categories: List<Category>)
+    suspend fun getBackupData(): BackupData
+    suspend fun restoreBackupData(backupData: BackupData)
 
     suspend fun clearAllDatabaseData()
-
-    suspend fun unlockAllNotes() // ✨ ADDED
+    suspend fun unlockAllNotes()
 }

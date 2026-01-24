@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CategorySheet(
-    categories: List<String>,
+    categories: CategoryItems,
     selectedCategory: String,
     onCategorySelect: (String) -> Unit,
     onManageCategoriesClick: () -> Unit,
@@ -70,7 +70,7 @@ fun CategorySheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(scrollState)
-                .padding(bottom = 24.dp)
+                .padding(bottom = 16.dp)
         ) {
             Text(
                 text = "Choose Category",
@@ -83,7 +83,7 @@ fun CategorySheet(
             )
 
             HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 0.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp),
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
 
@@ -92,17 +92,21 @@ fun CategorySheet(
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                categories.forEach { category ->
+                categories.items.forEach { category ->
                     val isSelected = category == selectedCategory
 
                     FilterChip(
                         selected = isSelected,
                         onClick = {
-                            onCategorySelect(category)
+                            if (isSelected) {
+                                onCategorySelect("")
+                            } else {
+                                onCategorySelect(category)
+                            }
                             onDismiss()
                         },
                         label = { Text(category) },
@@ -110,7 +114,7 @@ fun CategorySheet(
                             {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = null,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -124,7 +128,7 @@ fun CategorySheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
                 onClick = {
@@ -133,7 +137,7 @@ fun CategorySheet(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 16.dp)
                     .height(48.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {

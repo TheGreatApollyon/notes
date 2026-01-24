@@ -16,10 +16,22 @@
 
 package com.openappslabs.jotter.data.model
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
-@Entity(tableName = "notes")
+@Immutable
+@Serializable
+@Entity(
+    tableName = "notes",
+    indices = [
+        Index(value = ["isArchived", "isTrashed"]),
+        Index(value = ["category"]),
+        Index(value = ["isPinned", "updatedTime"])
+    ]
+)
 data class Note(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,

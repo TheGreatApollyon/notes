@@ -65,7 +65,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,6 +84,8 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.openappslabs.jotter.ui.components.CategoryItems
 import com.openappslabs.jotter.ui.components.CategorySheet
 import com.openappslabs.jotter.ui.components.DeleteNoteDialog
 import com.openappslabs.jotter.ui.components.DiscardChangesDialog
@@ -113,8 +114,8 @@ fun NoteDetailScreen(
     val haptics = rememberJotterHaptics()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val uiState by viewModel.uiState.collectAsState()
-    val userPrefs by viewModel.userPreferences.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userPrefs by viewModel.userPreferences.collectAsStateWithLifecycle()
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showCategorySheet by remember { mutableStateOf(false) }
@@ -122,10 +123,11 @@ fun NoteDetailScreen(
     var pendingDiscard by remember { mutableStateOf(false) }
     var showNoteActionDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val availableCategories by viewModel.availableCategories.collectAsState()
+    val availableCategories by viewModel.availableCategories.collectAsStateWithLifecycle()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+
     var isViewMode by remember(uiState.isNotePersisted, userPrefs.defaultOpenInEdit) {
         val initialViewMode = if (uiState.isNotePersisted) {
             !userPrefs.defaultOpenInEdit
@@ -134,12 +136,39 @@ fun NoteDetailScreen(
         }
         mutableStateOf(initialViewMode)
     }
+
     val isSaveEnabled = !isViewMode && uiState.isModified && (uiState.title.isNotBlank() || uiState.content.isNotBlank())
-    val dateString = remember(uiState.lastEdited, userPrefs.is24HourFormat, userPrefs.dateFormat) {
+
+    val locale = Locale.getDefault()
+    val dateString = remember(uiState.createdTime, userPrefs.is24HourFormat, userPrefs.dateFormat, locale) {
         val timePattern = if (userPrefs.is24HourFormat) "HH:mm" else "hh:mm a"
         val datePattern = userPrefs.dateFormat
         val pattern = "$datePattern, $timePattern"
-        SimpleDateFormat(pattern, Locale.getDefault()).format(Date(uiState.createdTime))
+        SimpleDateFormat(pattern, locale).format(Date(uiState.createdTime))
+    }
+
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    val titleStyle = remember(onSurfaceColor) {
+        TextStyle(
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold,
+            color = onSurfaceColor
+        )
+    }
+
+    val contentStyle = remember(onSurfaceColor) {
+        TextStyle(
+            fontSize = 18.sp,
+            lineHeight = 28.sp,
+            fontWeight = FontWeight.Normal,
+            color = onSurfaceColor.copy(alpha = 0.85f)
+        )
+    }
+
+    val cursorBrush = remember(primaryColor) {
+        SolidColor(primaryColor)
     }
 
     LaunchedEffect(isImeVisible) {
@@ -182,7 +211,10 @@ fun NoteDetailScreen(
                     if (uiState.isNotePersisted && !isArchivedOrTrashed) {
                         EditViewButton(
                             isEditing = !isViewMode,
-                            onToggle = { isViewMode = !isViewMode }
+                            onToggle = {
+                                haptics.tick()
+                                isViewMode = !isViewMode
+                            }
                         )
                     } else {
                         Text(
@@ -194,7 +226,10 @@ fun NoteDetailScreen(
                 },
                 navigationIcon = {
                     Surface(
-                        onClick = { handleBack() },
+                        onClick = {
+                            haptics.click()
+                            handleBack()
+                        },
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                         modifier = Modifier
@@ -215,7 +250,10 @@ fun NoteDetailScreen(
                 actions = {
                     if (isArchivedOrTrashed) {
                         Surface(
-                            onClick = { showRestoreNoteDialog = true },
+                            onClick = {
+                                haptics.click()
+                                showRestoreNoteDialog = true
+                            },
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceContainer,
                             enabled = true,
@@ -234,7 +272,10 @@ fun NoteDetailScreen(
                         }
                     } else if (isViewMode) {
                         Surface(
-                            onClick = { showNoteActionDialog = true },
+                            onClick = {
+                                haptics.click()
+                                showNoteActionDialog = true
+                            },
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceContainer,
                             modifier = Modifier
@@ -284,233 +325,211 @@ fun NoteDetailScreen(
                 )
             )
         },
-        bottomBar = {
-            val showBottomBar = isViewMode && uiState.isNotePersisted && !isArchivedOrTrashed
-
-            AnimatedVisibility(
-                visible = showBottomBar,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(bottom = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    PinLockBar(
-                        isPinned = uiState.isPinned,
-                        isLocked = uiState.isLocked,
-                        onTogglePin = { viewModel.togglePin() },
-                        onToggleLock = {
-                            if (userPrefs.isBiometricEnabled) {
-                                viewModel.toggleLock()
-                            } else {
-                                scope.launch {
-                                    if (snackbarHostState.currentSnackbarData == null) {
-                                        snackbarHostState.showSnackbar(
-                                            message = "Enable Note Lock in Settings to use this feature",
-                                            duration = SnackbarDuration.Short
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    )
-                }
-            }
-        },
         modifier = modifier
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .imePadding()
         ) {
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .navigationBarsPadding()
+                    .imePadding()
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(
-                            if (uiState.category.isBlank()) {
-                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
-                            } else {
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                            }
-                        )
-                        .clickable {
-                            if (!isViewMode && !isArchivedOrTrashed) {
-                                if (isImeVisible) {
-                                    focusManager.clearFocus()
-                                    keyboardController?.hide()
-                                    scope.launch {
-                                        delay(200)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (uiState.category.isBlank()) {
+                                    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+                                } else {
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                }
+                            )
+                            .clickable {
+                                if (!isViewMode && !isArchivedOrTrashed) {
+                                    if (isImeVisible) {
+                                        focusManager.clearFocus()
+                                        keyboardController?.hide()
+                                        scope.launch {
+                                            delay(200)
+                                            showCategorySheet = true
+                                        }
+                                    } else {
+                                        haptics.click()
                                         showCategorySheet = true
                                     }
-                                } else {
-                                    haptics.click()
-                                    showCategorySheet = true
                                 }
                             }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (uiState.category.isBlank()) "UNCATEGORIZED" else uiState.category.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (uiState.category.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (uiState.isArchived) {
+                            Icon(
+                                imageVector = Icons.Default.Archive,
+                                contentDescription = "Archived",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                         }
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = if (uiState.category.isBlank()) "UNCATEGORIZED" else uiState.category.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (uiState.category.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary
-                    )
+                        if (uiState.isTrashed) {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = "Trashed",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+
+                        if (uiState.isNotePersisted) {
+                            Text(
+                                text = "Created at $dateString",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(16.dp))
 
+                BasicTextField(
+                    value = uiState.title,
+                    onValueChange = { viewModel.updateTitle(it) },
+                    readOnly = isViewMode || isArchivedOrTrashed,
+                    textStyle = titleStyle,
+                    cursorBrush = cursorBrush,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (uiState.title.isEmpty() && !isViewMode && !isArchivedOrTrashed) {
+                                Text(
+                                    text = "Untitled",
+                                    style = titleStyle.copy(color = onSurfaceColor.copy(alpha = 0.3f))
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
+                )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-//                    if (uiState.isPinned) {
-//                        Icon(
-//                            imageVector = Icons.Default.PushPin,
-//                            contentDescription = "Pinned",
-//                            tint = MaterialTheme.colorScheme.secondary,
-//                            modifier = Modifier.size(14.dp)
-//                        )
-//                        Spacer(modifier = Modifier.width(8.dp))
-//                    }
-//                    if (uiState.isLocked) {
-//                        Icon(
-//                            imageVector = Icons.Default.Lock,
-//                            contentDescription = "Locked",
-//                            tint = MaterialTheme.colorScheme.error,
-//                            modifier = Modifier.size(14.dp)
-//                        )
-//                        Spacer(modifier = Modifier.width(8.dp))
-//                    }
-                    if (uiState.isArchived) {
-                        Icon(
-                            imageVector = Icons.Default.Archive,
-                            contentDescription = "Archived",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    if (uiState.isTrashed) {
-                        Icon(
-                            imageVector = Icons.Filled.Delete,
-                            contentDescription = "Trashed",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    if (uiState.isNotePersisted) {
-                        Text(
-                            text = "Created at $dateString",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
+                BasicTextField(
+                    value = uiState.content,
+                    onValueChange = { viewModel.updateContent(it) },
+                    readOnly = isViewMode || isArchivedOrTrashed,
+                    textStyle = contentStyle,
+                    cursorBrush = cursorBrush,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (uiState.content.isEmpty() && !isViewMode && !isArchivedOrTrashed) {
+                                Text(
+                                    text = "Start typing...",
+                                    style = contentStyle.copy(color = onSurfaceColor.copy(alpha = 0.3f))
+                                )
+                            }
+                            innerTextField()
+                        }
                     }
+                )
+
+                if (!isViewMode) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                if (isViewMode && uiState.isNotePersisted && !isArchivedOrTrashed) {
+                    Spacer(modifier = Modifier.height(88.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            BasicTextField(
-                value = uiState.title,
-                onValueChange = { viewModel.updateTitle(it) },
-                readOnly = isViewMode || isArchivedOrTrashed,
-                textStyle = TextStyle(
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                decorationBox = { innerTextField ->
-                    Box {
-                        if (uiState.title.isEmpty() && !isViewMode && !isArchivedOrTrashed) {
-                            Text(
-                                text = "Untitled",
-                                style = TextStyle(
-                                    fontSize = 30.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                                )
-                            )
+            val showBottomBar = isViewMode && uiState.isNotePersisted && !isArchivedOrTrashed
+            AnimatedVisibility(
+                visible = showBottomBar,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp)
+            ) {
+                PinLockBar(
+                    isPinned = uiState.isPinned,
+                    isLocked = uiState.isLocked,
+                    onTogglePin = { viewModel.togglePin() },
+                    onToggleLock = {
+                        if (userPrefs.isBiometricEnabled) {
+                            viewModel.toggleLock()
+                        } else {
+                            scope.launch {
+                                if (snackbarHostState.currentSnackbarData == null) {
+                                    snackbarHostState.showSnackbar(
+                                        message = "Enable Note Lock in Settings to use this feature",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            }
                         }
-                        innerTextField()
                     }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            BasicTextField(
-                value = uiState.content,
-                onValueChange = { viewModel.updateContent(it) },
-                readOnly = isViewMode || isArchivedOrTrashed,
-                textStyle = TextStyle(
-                    fontSize = 18.sp,
-                    lineHeight = 28.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-                ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                decorationBox = { innerTextField ->
-                    Box {
-                        if (uiState.content.isEmpty() && !isViewMode && !isArchivedOrTrashed) {
-                            Text(
-                                text = "Start typing...",
-                                style = TextStyle(
-                                    fontSize = 18.sp,
-                                    lineHeight = 28.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                                )
-                            )
-                        }
-                        innerTextField()
-                    }
-                }
-            )
+                )
+            }
         }
     }
 
     if (showCategorySheet) {
         CategorySheet(
-            categories = availableCategories,
+            categories = CategoryItems(availableCategories),
             selectedCategory = uiState.category,
             onCategorySelect = { newCategory ->
                 haptics.tick()
                 viewModel.updateCategory(newCategory)
                 isViewMode = false
             },
-            onManageCategoriesClick = onManageCategoryClick,
+            onManageCategoriesClick = {
+                haptics.click()
+                onManageCategoryClick()
+            },
             onDismiss = { showCategorySheet = false }
         )
     }
 
     if (showDiscardDialog) {
         DiscardChangesDialog(
-            onDismiss = { showDiscardDialog = false },
+            onDismiss = {
+                haptics.click()
+                showDiscardDialog = false
+            },
             onConfirm = {
+                haptics.tick()
                 showDiscardDialog = false
                 if (uiState.isNotePersisted) {
                     viewModel.undoChanges()
@@ -524,7 +543,10 @@ fun NoteDetailScreen(
 
     if (showDeleteDialog) {
         DeleteNoteDialog(
-            onDismiss = { showDeleteDialog = false },
+            onDismiss = {
+                haptics.click()
+                showDeleteDialog = false
+            },
             onConfirm = {
                 haptics.heavy()
                 showDiscardDialog = false
@@ -536,7 +558,10 @@ fun NoteDetailScreen(
 
     if (showNoteActionDialog) {
         NoteActionDialog(
-            onDismiss = { showNoteActionDialog = false },
+            onDismiss = {
+                haptics.click()
+                showNoteActionDialog = false
+            },
             onArchiveConfirm = {
                 haptics.tick()
                 showNoteActionDialog = false
@@ -554,7 +579,10 @@ fun NoteDetailScreen(
 
     if (showRestoreNoteDialog) {
         RestoreNoteDialog(
-            onDismiss = { showRestoreNoteDialog = false },
+            onDismiss = {
+                haptics.click()
+                showRestoreNoteDialog = false
+            },
             onConfirm = {
                 haptics.success()
                 showRestoreNoteDialog = false
