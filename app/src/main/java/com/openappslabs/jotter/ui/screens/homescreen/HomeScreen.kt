@@ -21,38 +21,30 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.openappslabs.jotter.ui.components.CategoryBar
+import com.openappslabs.jotter.ui.components.CategoryItems
 import com.openappslabs.jotter.ui.components.FAB
 import com.openappslabs.jotter.ui.components.NoteCard
+import com.openappslabs.jotter.ui.components.SearchBar
+import com.openappslabs.jotter.ui.theme.rememberJotterHaptics
 import com.openappslabs.jotter.utils.BiometricAuthUtil
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -62,57 +54,32 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     onNoteClick: (Int) -> Unit,
-    onAddNoteClick: () -> Unit,
+    onAddNoteClick: (String?) -> Unit,
     onAddCategoryClick: () -> Unit,
     onSettingsClick: () -> Unit,
     viewModel: HomeScreenViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val haptics = rememberJotterHaptics()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyStaggeredGridState()
     val context = LocalContext.current
+    
+    val locale = Locale.getDefault()
+    val dateFormatter = remember(uiState.dateFormat, locale) {
+        SimpleDateFormat(uiState.dateFormat, locale)
+    }
 
     LaunchedEffect(uiState.selectedCategory) {
         listState.animateScrollToItem(0)
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text     = "Jotter",
-                        style    = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Light
-                    )
-                },
-                actions = {
-//                    FilledTonalIconButton(onClick = { viewModel.toggleGridView() }) {
-//                        Icon(
-//                            imageVector = if (uiState.isGridView) Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView,
-//                            contentDescription = "Toggle View",
-//                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-//                        )
-//                    }
-//                    Spacer(modifier = Modifier.width(8.dp))
-                    FilledTonalIconButton(onClick = onSettingsClick) {
-                        Icon(
-                            imageVector     = Icons.Outlined.Settings,
-                            contentDescription= "Settings",
-                            tint            = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor         = MaterialTheme.colorScheme.surface,
-                    titleContentColor      = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            )
-        },
         floatingActionButton = {
             FAB(
-                onClick = onAddNoteClick
+                onClick = {
+                    val category = if (uiState.selectedCategory == "All") null else uiState.selectedCategory
+                    onAddNoteClick(category)
+                }
             )
         }
     ) { innerPadding ->
@@ -121,8 +88,19 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            SearchBar(
+                query = uiState.searchQuery,
+                onQueryChange = viewModel::onSearchQueryChange,
+                onProfileClick = {  },
+                onSettingsClick = {
+                    haptics.click()
+                    onSettingsClick()
+                },
+                modifier = Modifier.padding(start = 16.dp, top = 0.dp, end = 16.dp, bottom = 8.dp)
+            )
+
             CategoryBar(
-                categories          = uiState.allAvailableCategories,
+                categories          = CategoryItems(uiState.allAvailableCategories),
                 selectedCategory    = uiState.selectedCategory,
                 onCategorySelect    = { viewModel.selectCategory(it) },
                 onAddCategoryClick  = onAddCategoryClick,
@@ -139,18 +117,15 @@ fun HomeScreen(
                 verticalItemSpacing  = 12.dp
             ) {
                 items(uiState.allNotes, key = { it.id }) { note ->
-                    val dateStr = remember(note.createdTime, uiState.dateFormat) {
-                        SimpleDateFormat(uiState.dateFormat, Locale.getDefault()).format(Date(note.createdTime))
+                    val dateStr = remember(note.createdTime, uiState.dateFormat, locale) {
+                        dateFormatter.format(Date(note.createdTime))
                     }
                     NoteCard(
-                        title     = note.title,
-                        content   = note.content,
-                        date      = dateStr,
-                        category  = note.category,
-                        isPinned  = note.isPinned,
-                        isLocked  = note.isLocked,
-                        isGridView= uiState.isGridView,
+                        note = note,
+                        date = dateStr,
+                        isGridView = uiState.isGridView,
                         onClick   = { 
+                            haptics.tick()
                             viewModel.onNoteClicked(note.id)
                             
                             if (note.isLocked && uiState.isBiometricEnabled) {

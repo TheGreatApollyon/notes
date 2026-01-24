@@ -16,20 +16,25 @@
 
 package com.openappslabs.jotter.ui.screens.notedetailscreen
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.openappslabs.jotter.data.model.Note
 import com.openappslabs.jotter.data.repository.CategoryRepository
 import com.openappslabs.jotter.data.repository.NotesRepository
 import com.openappslabs.jotter.data.repository.UserPreferences
 import com.openappslabs.jotter.data.repository.UserPreferencesRepository
+import com.openappslabs.jotter.navigation.AppRoutes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -44,11 +49,15 @@ class NoteDetailViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
-    private val noteId: Int? = savedStateHandle.get<Int>("noteId")
+    private val route = savedStateHandle.toRoute<AppRoutes.NoteDetail>()
+    private val noteId = route.noteId
+    private val passedCategory = route.category
 
     val userPreferences: StateFlow<UserPreferences> = userPreferencesRepository.userPreferencesFlow
+        .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.Lazily, UserPreferences())
 
+    @Immutable
     data class UiState(
         val id: Int? = null,
         val title: String = "",
@@ -72,6 +81,7 @@ class NoteDetailViewModel @Inject constructor(
 
     val availableCategories: StateFlow<List<String>> = categoryRepository.getAllCategories()
         .map { categoryList -> categoryList.map { it.name } }
+        .distinctUntilChanged()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000L),
@@ -79,29 +89,45 @@ class NoteDetailViewModel @Inject constructor(
         )
 
     init {
-        if (noteId != null && noteId != -1) {
+        if (noteId != -1) {
             loadNote(noteId)
         } else {
-            val initialState = UiState(isNotePersisted = false, isLoading = false)
+            val initialState = UiState(
+                category = passedCategory ?: "",
+                isNotePersisted = false, 
+                isLoading = false
+            )
             _uiState.update { initialState }
             originalState = initialState
         }
         observeCategoryCleanup()
+        observeNoteUpdates()
     }
 
     private fun observeCategoryCleanup() {
         viewModelScope.launch {
-            availableCategories
-                .collectLatest { categories ->
-                    val currentCategory = uiState.value.category
+            availableCategories.drop(1).collectLatest { categories ->
+                val currentCategory = uiState.value.category
+                if (currentCategory.isNotBlank() && !categories.contains(currentCategory)) {
+                    _uiState.update { it.copy(category = "") }
+                    checkForChanges()
+                }
+            }
+        }
+    }
 
-                    if (currentCategory.isNotBlank() && !categories.contains(currentCategory)) {
-                        _uiState.update {
-                            it.copy(category = "")
-                        }
+    private fun observeNoteUpdates() {
+        if (noteId != -1) {
+            viewModelScope.launch {
+                notesRepository.getAllNotes().collectLatest { notes ->
+                    val updatedNote = notes.find { it.id == noteId }
+                    if (updatedNote != null && updatedNote.category != uiState.value.category) {
+                        _uiState.update { it.copy(category = updatedNote.category) }
+                        originalState = originalState?.copy(category = updatedNote.category)
                         checkForChanges()
                     }
                 }
+            }
         }
     }
 
@@ -127,7 +153,7 @@ class NoteDetailViewModel @Inject constructor(
                 _uiState.update { newState }
                 originalState = newState
             } else {
-                _uiState.value = UiState(isLoading = false)
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -137,7 +163,7 @@ class NoteDetailViewModel @Inject constructor(
             val currentState = uiState.value
             if (currentState.id != null) {
                 val updatedNote = Note(
-                    id = currentState.id!!,
+                    id = currentState.id,
                     title = currentState.title,
                     content = currentState.content,
                     category = currentState.category,
@@ -146,7 +172,7 @@ class NoteDetailViewModel @Inject constructor(
                     isArchived = currentState.isArchived,
                     isTrashed = currentState.isTrashed,
                     createdTime = currentState.createdTime,
-                    updatedTime = currentState.lastEdited
+                    updatedTime = System.currentTimeMillis()
                 )
                 notesRepository.updateNote(updatedNote)
             }
@@ -209,36 +235,12 @@ class NoteDetailViewModel @Inject constructor(
                 isTrashed = currentState.isTrashed
             )
 
-            val idAfterSave: Int?
-
             if (currentState.isNotePersisted) {
                 notesRepository.updateNote(noteToSave)
-                idAfterSave = currentState.id
+                loadNote(currentState.id!!)
             } else {
-                val newIdLong = notesRepository.addNote(noteToSave)
-                idAfterSave = newIdLong.toInt()
-            }
-
-            idAfterSave?.let { freshNoteId ->
-                notesRepository.getNoteById(freshNoteId)?.let { freshNote ->
-                    val freshState = UiState(
-                        id = freshNote.id,
-                        title = freshNote.title,
-                        content = freshNote.content,
-                        category = freshNote.category,
-                        isPinned = freshNote.isPinned,
-                        isLocked = freshNote.isLocked,
-                        isArchived = freshNote.isArchived,
-                        isTrashed = freshNote.isTrashed,
-                        createdTime = freshNote.createdTime,
-                        lastEdited = freshNote.updatedTime,
-                        isNotePersisted = true,
-                        isLoading = false,
-                        isModified = false
-                    )
-                    _uiState.update { freshState }
-                    originalState = freshState
-                }
+                val newId = notesRepository.addNote(noteToSave).toInt()
+                loadNote(newId)
             }
         }
     }
@@ -247,7 +249,6 @@ class NoteDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val note = uiState.value
             val noteToDelete = Note(id = note.id ?: 0)
-
             if (note.isTrashed) {
                 notesRepository.deleteNote(noteToDelete)
             } else {
@@ -258,22 +259,18 @@ class NoteDetailViewModel @Inject constructor(
 
     fun archiveNote() {
         viewModelScope.launch {
-            val note = uiState.value
-            val noteToArchive = Note(id = note.id ?: 0)
-            notesRepository.archiveNote(noteToArchive)
+            notesRepository.archiveNote(Note(id = uiState.value.id ?: 0))
         }
     }
 
     fun restoreNote() {
         viewModelScope.launch {
-            notesRepository.restoreNote(
-                Note(id = uiState.value.id ?: 0)
-            )
+            notesRepository.restoreNote(Note(id = uiState.value.id ?: 0))
         }
     }
 
     fun undoChanges() {
-        if (noteId != null && noteId != -1) {
+        if (noteId != -1) {
             loadNote(noteId)
         }
     }

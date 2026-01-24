@@ -16,9 +16,11 @@
 
 package com.openappslabs.jotter.ui.screens.homescreen
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openappslabs.jotter.data.model.Note
+import com.openappslabs.jotter.data.repository.CategoryRepository
 import com.openappslabs.jotter.data.repository.NotesRepository
 import com.openappslabs.jotter.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +28,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,58 +37,66 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
     private val notesRepository: NotesRepository,
+    private val categoryRepository: CategoryRepository,
     private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
-    private val _categoryFlow = MutableStateFlow("All")
+    private val _selectedCategory = MutableStateFlow("All")
+    private val _searchQuery = MutableStateFlow("")
+
     val uiState: StateFlow<UiState> = combine(
         notesRepository.getAllNotes(),
+        categoryRepository.getAllCategories().map { list -> list.map { it.name } },
         userPreferencesRepository.userPreferencesFlow,
-        _categoryFlow
-    ) { notes, prefs, selectedCategory ->
+        _selectedCategory,
+        _searchQuery
+    ) { notes, categories, prefs, selectedCategory, searchQuery ->
 
-        val allAvailableCategories = notes
-            .map { it.category }
-            .distinct()
-            .filter { it.isNotBlank() }
-            .sorted()
-
-        val validatedCategory = if (selectedCategory != "All" && !allAvailableCategories.contains(selectedCategory)) {
+        // Validate if selected category still exists, otherwise default to "All"
+        val validatedCategory = if (selectedCategory != "All" && 
+            !listOf("Pinned", "Locked").contains(selectedCategory) && 
+            !categories.contains(selectedCategory)) {
             "All"
         } else {
             selectedCategory
         }
 
-        if (validatedCategory != selectedCategory) {
-            viewModelScope.launch {
-                _categoryFlow.value = validatedCategory
+        val filteredNotes = if (searchQuery.isNotBlank()) {
+            notes.filter {
+                it.title.contains(searchQuery, ignoreCase = true) ||
+                        it.content.contains(searchQuery, ignoreCase = true)
             }
-        }
-
-        val filteredNotes = when (validatedCategory) {
-            "All"     -> notes
-            "Pinned"  -> notes.filter { it.isPinned }
-            "Locked"  -> notes.filter { it.isLocked }
-            else      -> notes.filter { it.category == validatedCategory }
+        } else {
+            when (validatedCategory) {
+                "All"     -> notes
+                "Pinned"  -> notes.filter { it.isPinned }
+                "Locked"  -> notes.filter { it.isLocked }
+                else      -> notes.filter { it.category == validatedCategory }
+            }
         }
 
         UiState(
             allNotes = filteredNotes,
             selectedCategory = validatedCategory,
+            searchQuery = searchQuery,
             isGridView = prefs.isGridView,
-            allAvailableCategories = allAvailableCategories,
+            allAvailableCategories = categories,
             showAddCategoryButton = prefs.showAddCategoryButton,
             isBiometricEnabled = prefs.isBiometricEnabled,
             dateFormat = prefs.dateFormat
         )
-    }.stateIn(
+    }
+    .distinctUntilChanged()
+    .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = UiState()
     )
 
+    @Immutable
     data class UiState(
         val allNotes: List<Note> = emptyList(),
         val selectedCategory: String = "All",
+        val searchQuery: String = "",
         val isGridView: Boolean = true,
         val allAvailableCategories: List<String> = emptyList(),
         val showAddCategoryButton: Boolean = true,
@@ -100,11 +112,13 @@ class HomeScreenViewModel @Inject constructor(
     }
 
     fun selectCategory(category: String) {
-        _categoryFlow.value = category
+        _selectedCategory.value = category
     }
 
-    fun onNoteClicked(noteId: Int) { }
-    fun onAddNoteClick() { }
-    fun onAddCategoryClick() { }
-    fun onSettingsClick() { }
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun onNoteClicked(noteId: Int) {
+    }
 }
