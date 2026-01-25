@@ -87,8 +87,6 @@ If you encounter any bugs, issues, or unexpected behavior while using Jotter, pl
 When reporting a bug, please include:
 
 - Steps to reproduce the issue
-- Expected behavior
-- Actual behavior
 - Device/Android version
 - Screenshots (if applicable)
 
@@ -101,6 +99,3 @@ If you find Jotter useful, please consider ⭐ starring the repository to help o
 ## 📄 License
 
 Jotter is licensed under the [GNU GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
-
-## Stargazers over time
-[![Stargazers over time](https://starchart.cc/OpenAppsLabs/Jotter.svg?variant=adaptive)](https://starchart.cc/OpenAppsLabs/Jotter)
