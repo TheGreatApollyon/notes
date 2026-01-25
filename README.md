@@ -1,7 +1,7 @@
 <h1 align="center">Jotter</h1>
 
 <p align="center">
-    <img src="screenshots/hero-image.png" alt="Hero Banner"/>
+    <img src="assets/images/hero-image.png" alt="Hero Banner"/>
 </p>
 
 <p align="center">
