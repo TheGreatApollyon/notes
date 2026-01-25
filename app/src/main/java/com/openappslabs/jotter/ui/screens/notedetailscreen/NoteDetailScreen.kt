@@ -332,10 +332,11 @@ fun NoteDetailScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 20.dp)
                     .navigationBarsPadding()
                     .imePadding()
@@ -468,11 +469,11 @@ fun NoteDetailScreen(
                 }
 
                 if (isViewMode && uiState.isNotePersisted && !isArchivedOrTrashed) {
-                    Spacer(modifier = Modifier.height(88.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
-            val showBottomBar = isViewMode && uiState.isNotePersisted && !isArchivedOrTrashed
+            val showBottomBar = isViewMode && uiState.isNotePersisted && !isArchivedOrTrashed && (scrollState.value == 0 || scrollState.maxValue == 0)
             AnimatedVisibility(
                 visible = showBottomBar,
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),

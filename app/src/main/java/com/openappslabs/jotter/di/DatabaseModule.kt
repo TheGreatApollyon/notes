@@ -70,6 +70,7 @@ abstract class DatabaseModule {
                 "jotter_db"
             )
                 .addMigrations(MIGRATION_4_5)
+                .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
         }
 

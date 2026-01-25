@@ -252,7 +252,7 @@ fun SettingsScreen(
                     SettingsItemArrow(
                         icon = Icons.Default.Archive,
                         title = "Archived Notes",
-                        subtitle = "Notes removed from the home screen",
+                        subtitle = "Notes you archive appear here",
                         onClick = onArchiveClick
                     )
                     TinyGap()
@@ -260,7 +260,7 @@ fun SettingsScreen(
                     SettingsItemArrow(
                         icon = Icons.Default.Delete,
                         title = "Trash",
-                        subtitle = "Permanently deleted after 7 days",
+                        subtitle = "Notes you delete appear here",
                         onClick = onTrashClick
                     )
                     TinyGap()
@@ -325,33 +325,33 @@ fun SettingsScreen(
                         }
                     }
 
-                    SettingsItemSwitch(
-                        icon = Icons.Default.VpnKey,
-                        title = "App Lock",
-                        subtitle = "Require authentication to open app",
-                        checked = uiState.isAppLockEnabled,
-                        onCheckedChange = { targetState ->
-                            val activity = context as? FragmentActivity
-                            if (activity != null) {
-                                val authSubtitle = if (targetState) {
-                                    "Authenticate To Enable App Lock"
-                                } else {
-                                    "Authenticate To Disable App Lock"
-                                }
-                                BiometricAuthUtil.authenticate(
-                                    activity = activity,
-                                    title = "Confirm Identity",
-                                    subtitle = authSubtitle,
-                                    onSuccess = {
-                                        viewModel.updateAppLockEnabled(targetState)
-                                    },
-                                    onError = { }
-                                )
-                            }
-                        }
-                    )
-
-                    TinyGap()
+//                    SettingsItemSwitch(
+//                        icon = Icons.Default.VpnKey,
+//                        title = "App Lock",
+//                        subtitle = "Require authentication to open app",
+//                        checked = uiState.isAppLockEnabled,
+//                        onCheckedChange = { targetState ->
+//                            val activity = context as? FragmentActivity
+//                            if (activity != null) {
+//                                val authSubtitle = if (targetState) {
+//                                    "Authenticate To Enable App Lock"
+//                                } else {
+//                                    "Authenticate To Disable App Lock"
+//                                }
+//                                BiometricAuthUtil.authenticate(
+//                                    activity = activity,
+//                                    title = "Confirm Identity",
+//                                    subtitle = authSubtitle,
+//                                    onSuccess = {
+//                                        viewModel.updateAppLockEnabled(targetState)
+//                                    },
+//                                    onError = { }
+//                                )
+//                            }
+//                        }
+//                    )
+//
+//                    TinyGap()
 
                     SettingsItemSwitch(
                         icon = Icons.Default.Security,
