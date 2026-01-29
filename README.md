@@ -69,34 +69,21 @@ Get the latest version of **Jotter**:
 * **Dynamic Colors:** App adapts to your system colors.  
 * **Trash & Archive:** Organize your notes without losing data.  
 * **Haptics Feedback:** Subtle feedback for interactions.  
-* **Multiple View Modes:** List, grid, or compact views for your notes.  
+* **Multiple View Modes:** List, grid views for your notes.  
 
 ---
 
-## 🤝 Contributing
-
-We welcome contributions! To keep the project organized and maintainable, please follow these guidelines:
-
-1. **Fork the repository** and create a branch
-2. **Work on a single feature or fix per branch/PR.** Avoid mixing multiple features or unrelated changes in one Pull Request.
-3. **Write clear commit messages**
-4. **Ensure code quality:** Follow Kotlin coding conventions and Compose best practices.
-5. **Test your changes locally** before submitting.
-6. **Open a Pull Request** against the main branch of this repository. Include a description of your changes and any relevant screenshots or notes.
-
 ## 🐛 Bug Reporting
 
-If you encounter any bugs, issues, or unexpected behavior while using Jotter, please feel free to [open an issue](https://github.com/yourusername/jotter/issues) on this repository.  
+If you encounter any bugs, issues, or unexpected behavior while using Jotter, please feel free to [open an issue](https://github.com/OpenAppsLabs/jotter/issues) on this repository.  
 
 When reporting a bug, please include:
 
-- Steps to reproduce the issue
 - Device/Android version
 - Screenshots (if applicable)
 
 This helps me fix problems faster and improve the app for everyone.
 I welcome all constructive feedback and suggestions.
-This app is still in progress.
 
 If you find Jotter useful, please consider ⭐ starring the repository to help others discover it.
 
