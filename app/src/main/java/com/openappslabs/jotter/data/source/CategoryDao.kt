@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Open Apps Labs
+ * Copyright (c) 2026 Open Apps Labs
  *
  * This file is part of Jotter
  * * Jotter is free software: you can redistribute it and/or modify it under the terms of the
