@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Jotter"
+rootProject.name = "FNotes"
 include(":app")

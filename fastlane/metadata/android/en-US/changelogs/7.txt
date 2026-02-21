@@ -1,4 +1,4 @@
-## Introducing Jotter 2.0.0
+## Introducing FNotes 2.0.0
 
 ### ⚠️ Warning
 - **Important:** Please **backup your data before updating** to this version to avoid any potential data loss.

@@ -1,92 +1,91 @@
-<h1 align="center">Jotter</h1>
+# Notes
 
-<p align="center">
-    <img src="assets/images/hero-image.png" alt="Hero Banner"/>
-</p>
+A modern, privacy-focused note-taking app for Android with Material 3 Expressive UI.
 
-<p align="center">
-  <img src="https://img.shields.io/github/v/release/OpenAppsLabs/Jotter?style=for-the-badge&logo=GitHub&color=%23000000"/>
-  <img src="https://img.shields.io/github/downloads/OpenAppsLabs/Jotter/total?style=for-the-badge&logo=GitHub&color=%23000000"/>
-  <img src="https://img.shields.io/github/stars/OpenAppsLabs/Jotter?style=for-the-badge&logo=GitHub&color=%23000000"/>
-  <img src="https://img.shields.io/github/forks/OpenAppsLabs/Jotter?style=for-the-badge&logo=GitHub&color=%23000000"/>
-  <img src="https://img.shields.io/github/license/OpenAppsLabs/Jotter?style=for-the-badge&logo=GitHub&color=%23000000"/>
-</p>
+## Features
 
-Jotter is a modern, free notes app with a sleek, beautiful design. Unlike others loaded with ads and extras, it focuses purely on speed, simplicity, and privacy—offline-first with a dynamic UI that feels effortless. No distractions. No tracking. Just your notes, fast, secure, and only yours.
+- **Material 3 Expressive Design** - Modern UI with dynamic color theming (Monet)
+- **Privacy First** - All data stored locally, no cloud sync, no accounts required
+- **Dark Mode** - Full dark theme support with optional true black mode
+- **Note Organization** - Categories/tags, pinning, and search
+- **Lock Notes** - Secure notes with biometric authentication
+- **Archive & Trash** - Organize notes with archive and trash functionality
+- **Backup & Restore** - Export and import your notes
 
----
+## Screenshots
 
-## 📥 Download
+### Light Mode
 
-Get the latest version of **Jotter**:
+| Home Screen | Note Editor | Settings |
+|:-----------:|:-----------:|:--------:|
+| ![Home Light](screenshots/home_light.png) | ![Editor Light](screenshots/editor_light.png) | ![Settings Light](screenshots/settings_light.png) |
 
-<p align="center">
-  <a href="https://github.com/OpenAppsLabs/Jotter/releases/latest/download/app-release.apk">
-    <img src="assets/badges/get-it-on-github.png" alt="Get it on GitHub" height="100"/>
-  </a>
-  <a href="https://apt.izzysoft.de/fdroid/index/apk/com.openappslabs.jotter">
-    <img src="assets/badges/get-it-on-izzyondroid.png" alt="Get it on IzzyOnDroid" height="100"/>
-  </a>
-<br>
-  <a href="https://www.openapk.net/5g/com.openappslabs.jotter/">
-    <img src="assets/badges/get-it-on-openapk.png" alt="Get it on OpenAPK" height="100"/>
-  </a>
-  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/OpenAppsLabs/Jotter">
-    <img src="assets/badges/get-it-on-obtainium.png" alt="Get it on Obtainium" height="100"/>
-  </a>
-</p>
+### Dark Mode
 
----
+| Home Screen | Note Editor | Settings |
+|:-----------:|:-----------:|:--------:|
+| ![Home Dark](screenshots/home_dark.png) | ![Editor Dark](screenshots/editor_dark.png) | ![Settings Dark](screenshots/settings_dark.png) |
 
-## 📱 Screenshots
+## Download
 
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="45%" style="margin:10px;" />
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="45%" style="margin:10px;" />
-</p>
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="45%" style="margin:10px;" />
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="45%" style="margin:10px;" />
-</p>
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="45%" style="margin:10px;" />
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width="45%" style="margin:10px;" />
-</p>
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" width="45%" style="margin:10px;" />
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.png" width="45%" style="margin:10px;" />
-</p>
+Download the latest APK from [Releases](https://github.com/TheGreatApollyon/notes/releases).
 
+## Tech Stack
 
-## ✨ Features
+- **Kotlin** - Modern Android development
+- **Jetpack Compose** - Declarative UI
+- **Material 3** - Latest design system
+- **Hilt** - Dependency injection
+- **Room** - Local database
+- **DataStore** - Preferences
 
-* **Material You Design:** Fully compatible with Material 3 dynamic theming.  
-* **Rich Note Taking:** Create and edit notes seamlessly.  
-* **Offline First:** All data is stored locally using Room Database.  
-* **Dark Mode & True Dark Mode:** Fully optimized dark theme support.  
-* **Lock Notes:** Secure individual notes with a PIN or pattern.  
-* **Import & Export Notes:** Backup and restore your notes easily.  
-* **Dynamic Colors:** App adapts to your system colors.  
-* **Trash & Archive:** Organize your notes without losing data.  
-* **Haptics Feedback:** Subtle feedback for interactions.  
-* **Multiple View Modes:** List, grid views for your notes.  
+## Building
 
----
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/TheGreatApollyon/notes.git
+   cd notes
+   ```
 
-## 🐛 Bug Reporting
+2. Open in Android Studio or build from command line:
+   ```bash
+   ./gradlew assembleDebug
+   ```
 
-If you encounter any bugs, issues, or unexpected behavior while using Jotter, please feel free to [open an issue](https://github.com/OpenAppsLabs/jotter/issues) on this repository.  
+## License
 
-When reporting a bug, please include:
+```
+Notes - A privacy-focused note-taking app for Android
+Copyright (C) 2026 Forvia
 
-- Device/Android version
-- Screenshots (if applicable)
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-This helps me fix problems faster and improve the app for everyone.
-I welcome all constructive feedback and suggestions.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-If you find Jotter useful, please consider ⭐ starring the repository to help others discover it.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+```
 
-## 📄 License
+## Privacy
 
-Jotter is licensed under the [GNU GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
+Notes stores all data locally on your device. No accounts, no cloud sync, no data collection. Your notes remain private and under your control.
+
+- No third-party analytics or advertising
+- No information is ever shared with external services
+- All notes are stored in a local SQLite database
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request

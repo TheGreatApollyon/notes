@@ -1,4 +1,4 @@
-Jotter 1.0.0:
+FNotes 1.0.0:
 - Initial Relase
 - Minimal notes UI with local storage
 - Jetpack Compose + Material You design

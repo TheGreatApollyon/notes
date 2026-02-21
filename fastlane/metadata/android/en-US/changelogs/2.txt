@@ -1,4 +1,4 @@
-Jotter 1.1.0:
+FNotes 1.1.0:
 - Added in-app update support so you can check for, download, and install new versions directly from the app.
 - Introduced a new, cleaner update dialog with smoother animations and a stable layout.
 - Fixed inconsistent spacing and layout issues across update dialog states.

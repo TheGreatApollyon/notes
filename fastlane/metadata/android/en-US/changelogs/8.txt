@@ -1,4 +1,4 @@
-Jotter 2.0.1
+FNotes 2.0.1
 
 ⚠️ Warning
 - Important: Please backup your data before updating to this version to avoid any potential data loss. Since this update contains changes related to database.
